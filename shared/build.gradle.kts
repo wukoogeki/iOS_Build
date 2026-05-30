@@ -6,16 +6,17 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
     listOf(
         iosArm64(),
         iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
+    ).forEach {
+        it.binaries.framework {
             baseName = "Shared"
-            isStatic = true
+            isStatic = false
         }
     }
     
@@ -28,26 +29,16 @@ kotlin {
         browser()
     }
     
-    androidLibrary {
-       namespace = "org.project.shared"
-       compileSdk = libs.versions.android.compileSdk.get().toInt()
-       minSdk = libs.versions.android.minSdk.get().toInt()
-    
-       compilerOptions {
-           jvmTarget = JvmTarget.JVM_11
-       }
-       androidResources {
-           enable = true
-       }
-       withHostTest {
-           isIncludeAndroidResources = true
-       }
+    android {
+        namespace = "org.project.shared"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
     }
     
     sourceSets {
-        androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-        }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -62,12 +53,39 @@ kotlin {
                 exclude(group = "androidx.compose.material3", module = "material3-window-size-class")
             }
             implementation(libs.miuix.icons)
+            implementation(libs.miuix.blur)
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.json)
+            implementation(libs.ktor.serialization.json)
+            implementation(libs.ktor.client.logging)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        androidMain.dependencies {
+            implementation(libs.compose.uiToolingPreview)
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1")
+            implementation(libs.ktor.client.okhttp)
+        }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
+            implementation(libs.ktor.client.js)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        iosArm64Main.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        iosSimulatorArm64Main.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.client.js)
         }
     }
 }

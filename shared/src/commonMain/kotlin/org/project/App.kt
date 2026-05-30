@@ -1,81 +1,92 @@
 package org.project
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.painterResource
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import org.project.navigation.Screen
+import org.project.ui.components.BottomNavBar
+import org.project.ui.screens.*
+import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
-import top.yukonga.miuix.kmp.theme.ColorSchemeMode
-
-import kotlinproject.shared.generated.resources.Res
-import kotlinproject.shared.generated.resources.compose_multiplatform
 
 @Composable
 fun App() {
     val controller = remember { ThemeController(ColorSchemeMode.System) }
-    MiuixTheme(controller = controller) {
-        val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
-        var showContent by remember { mutableStateOf(false) }
+    val viewModel = remember { AppViewModel() }
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Login) }
+    val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.dispose()
+        }
+    }
+
+    MiuixTheme(controller = controller) {
         Scaffold(
             topBar = {
-                SmallTopAppBar(
-                    title = "KotlinProject",
-                    scrollBehavior = scrollBehavior
-                )
+                if (currentScreen != Screen.Login) {
+                    SmallTopAppBar(
+                        title = currentScreen.title,
+                        scrollBehavior = scrollBehavior
+                    )
+                }
+            },
+            bottomBar = {
+                if (currentScreen != Screen.Login) {
+                    BottomNavBar(
+                        currentScreen = currentScreen,
+                        onScreenSelected = { screen ->
+                            if (screen == Screen.Device) {
+                                viewModel.loadDevices()
+                            }
+                            currentScreen = screen
+                        }
+                    )
+                }
             }
         ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .padding(
                         top = paddingValues.calculateTopPadding(),
-                        start = 26.dp,
-                        end = 26.dp
+                        bottom = paddingValues.calculateBottomPadding()
                     )
                     .fillMaxSize()
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { showContent = !showContent },
-                        colors = ButtonDefaults.buttonColorsPrimary()
-                    ) {
-                        Text("点击我！")
+                when (currentScreen) {
+                    is Screen.Login -> {
+                        LoginScreen(
+                            viewModel = viewModel,
+                            onLoginSuccess = { currentScreen = Screen.Dashboard }
+                        )
                     }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    AnimatedVisibility(showContent) {
-                        val greeting = remember { Greeting().greet() }
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Image(painterResource(Res.drawable.compose_multiplatform), null)
-                            Text("Compose: $greeting")
-                        }
+                    is Screen.Dashboard -> {
+                        DashboardScreen(viewModel = viewModel)
+                    }
+                    is Screen.Device -> {
+                        DeviceScreen(
+                            viewModel = viewModel,
+                            onDeviceSelected = { currentScreen = Screen.Dashboard }
+                        )
+                    }
+                    is Screen.Control -> {
+                        ControlScreen(viewModel = viewModel)
+                    }
+                    is Screen.Settings -> {
+                        SettingsScreen(
+                            viewModel = viewModel,
+                            onLogout = {
+                                viewModel.logout()
+                                currentScreen = Screen.Login
+                            }
+                        )
                     }
                 }
             }

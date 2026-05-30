@@ -152,7 +152,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "set -e\ncd \"$SRCROOT/..\"\n\n# Determine configuration (Debug/Release)\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  GRADLE_TASK=\"linkReleaseFrameworkIosArm64\"\n  BUILD_TYPE=\"releaseFramework\"\nelse\n  GRADLE_TASK=\"linkDebugFrameworkIosArm64\"\n  BUILD_TYPE=\"debugFramework\"\nfi\n\nFRAMEWORK_NAME=\"Shared\"\nSRC_FRAMEWORK=\"$SRCROOT/../shared/build/bin/iosArm64/$BUILD_TYPE/$FRAMEWORK_NAME.framework\"\nDST_FRAMEWORK=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/$FRAMEWORK_NAME.framework\"\n\n# Only build if framework doesn't exist or source is newer\nif [ ! -d \"$SRC_FRAMEWORK\" ] || [ \"$SRCROOT/ContentView.swift\" -nt \"$SRC_FRAMEWORK\" ] || [ \"$SRCROOT/../shared/build.gradle.kts\" -nt \"$SRC_FRAMEWORK\" ]; then\n  echo \"Building Kotlin framework ($CONFIGURATION)...\"\n  export SDK_NAME=\"iphoneos\"\n  export ARCHS=\"arm64\"\n  export PLATFORM_NAME=\"iphoneos\"\n  ./gradlew :shared:$GRADLE_TASK --no-configuration-cache\nfi\n\n# Copy framework to Xcode build directory\nif [ -d \"$SRC_FRAMEWORK\" ]; then\n  rm -rf \"$DST_FRAMEWORK\"\n  mkdir -p \"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\n  cp -R \"$SRC_FRAMEWORK\" \"$DST_FRAMEWORK\"\n  echo \"Copied $FRAMEWORK_NAME.framework to $DST_FRAMEWORK\"\nelse\n  echo \"Error: Could not find $FRAMEWORK_NAME.framework at $SRC_FRAMEWORK\"\n  exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -301,6 +301,10 @@
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -311,6 +315,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					Shared,
 				);
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -329,6 +338,10 @@
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -339,6 +352,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					Shared,
 				);
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

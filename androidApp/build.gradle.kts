@@ -9,6 +9,7 @@ plugins {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11
+        freeCompilerArgs.add("-Xskip-prerelease-check")
     }
 }
 dependencies {
@@ -30,19 +31,35 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "**/kotlin-tooling-metadata.json"
+        }
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        compose = true
     }
 }

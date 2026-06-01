@@ -1,5 +1,6 @@
 package org.project.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,11 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun SettingsScreen(
     viewModel: AppViewModel,
+    currentThemeMode: ColorSchemeMode,
+    onThemeModeChange: (ColorSchemeMode) -> Unit,
     onLogout: () -> Unit
 ) {
     LazyColumn(
@@ -30,6 +34,11 @@ fun SettingsScreen(
         }
 
         item {
+            ThemeSelectorCard(currentThemeMode, onThemeModeChange)
+            Spacer(Modifier.height(16.dp))
+        }
+
+        item {
             UserInfoCard(viewModel)
             Spacer(Modifier.height(16.dp))
         }
@@ -42,6 +51,49 @@ fun SettingsScreen(
         item {
             LogoutButton(onLogout)
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun ThemeSelectorCard(
+    selectedTheme: ColorSchemeMode,
+    onThemeChange: (ColorSchemeMode) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "主题设置",
+                style = MiuixTheme.textStyles.title3,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            val themes = listOf(
+                ColorSchemeMode.System to "跟随系统",
+                ColorSchemeMode.Light to "浅色模式",
+                ColorSchemeMode.Dark to "深色模式"
+            )
+
+            themes.forEach { (mode, label) ->
+                val isSelected = selectedTheme == mode
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onThemeChange(mode) }
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = label,
+                        style = MiuixTheme.textStyles.body2
+                    )
+                    Text(
+                        text = if (isSelected) "✓" else "",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }

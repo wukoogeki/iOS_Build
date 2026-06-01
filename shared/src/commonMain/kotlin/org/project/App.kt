@@ -17,7 +17,8 @@ import top.yukonga.miuix.kmp.theme.ThemeController
 
 @Composable
 fun App() {
-    val controller = remember { ThemeController(ColorSchemeMode.System) }
+    var themeMode by remember { mutableStateOf(ColorSchemeMode.System) }
+    val controller = remember(themeMode) { ThemeController(themeMode) }
     val viewModel = remember { AppViewModel() }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Login) }
     val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
@@ -47,7 +48,8 @@ fun App() {
                                 viewModel.loadDevices()
                             }
                             currentScreen = screen
-                        }
+                        },
+                        themeMode = themeMode
                     )
                 }
             }
@@ -82,6 +84,8 @@ fun App() {
                     is Screen.Settings -> {
                         SettingsScreen(
                             viewModel = viewModel,
+                            currentThemeMode = themeMode,
+                            onThemeModeChange = { themeMode = it },
                             onLogout = {
                                 viewModel.logout()
                                 currentScreen = Screen.Login

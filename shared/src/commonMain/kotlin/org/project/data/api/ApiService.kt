@@ -38,7 +38,7 @@ class ApiService private constructor() {
     }
 
     private val baseUrl: String
-        get() = ApiConfig.baseUrl
+        get() = ApiConfig.getBaseUrl()
 
     suspend fun login(username: String, password: String): Result<String> = runCatching {
         val response: LoginResponse = client.post("$baseUrl${ApiRoutes.LOGIN}") {

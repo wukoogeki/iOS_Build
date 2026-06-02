@@ -1,5 +1,7 @@
 package org.project
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,6 +24,13 @@ fun App() {
     val viewModel = remember { AppViewModel() }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Login) }
     val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+
+    // Check if user is already logged in
+    LaunchedEffect(Unit) {
+        if (viewModel.state.isLoggedIn) {
+            currentScreen = Screen.Dashboard
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -62,35 +71,64 @@ fun App() {
                     )
                     .fillMaxSize()
             ) {
-                when (currentScreen) {
-                    is Screen.Login -> {
-                        LoginScreen(
-                            viewModel = viewModel,
-                            onLoginSuccess = { currentScreen = Screen.Dashboard }
-                        )
-                    }
-                    is Screen.Dashboard -> {
-                        DashboardScreen(viewModel = viewModel)
-                    }
-                    is Screen.Device -> {
-                        DeviceScreen(
-                            viewModel = viewModel,
-                            onDeviceSelected = { currentScreen = Screen.Dashboard }
-                        )
-                    }
-                    is Screen.Control -> {
-                        ControlScreen(viewModel = viewModel)
-                    }
-                    is Screen.Settings -> {
-                        SettingsScreen(
-                            viewModel = viewModel,
-                            currentThemeMode = themeMode,
-                            onThemeModeChange = { themeMode = it },
-                            onLogout = {
-                                viewModel.logout()
-                                currentScreen = Screen.Login
-                            }
-                        )
+                AnimatedContent(
+                    targetState = currentScreen,
+                    transitionSpec = {
+                        val direction = when {
+                            // Login to Dashboard - slide from right
+                            initialState is Screen.Login && targetState is Screen.Dashboard ->
+                                AnimatedContentTransitionScope.SlideDirection.Left
+                            // Dashboard to Login - slide from left
+                            initialState is Screen.Dashboard && targetState is Screen.Login ->
+                                AnimatedContentTransitionScope.SlideDirection.Right
+                            // Settings to others - slide based on navigation order
+                            initialState is Screen.Settings && targetState is Screen.Dashboard ->
+                                AnimatedContentTransitionScope.SlideDirection.Right
+                            initialState is Screen.Dashboard && targetState is Screen.Settings ->
+                                AnimatedContentTransitionScope.SlideDirection.Left
+                            // Default fade
+                            else -> null
+                        }
+
+                        if (direction != null) {
+                            slideIntoContainer(direction, tween(300)) togetherWith
+                            slideOutOfContainer(direction, tween(300))
+                        } else {
+                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                        }
+                    },
+                    label = "ScreenTransition"
+                ) { screen ->
+                    when (screen) {
+                        is Screen.Login -> {
+                            LoginScreen(
+                                viewModel = viewModel,
+                                onLoginSuccess = { currentScreen = Screen.Dashboard }
+                            )
+                        }
+                        is Screen.Dashboard -> {
+                            DashboardScreen(viewModel = viewModel)
+                        }
+                        is Screen.Device -> {
+                            DeviceScreen(
+                                viewModel = viewModel,
+                                onDeviceSelected = { currentScreen = Screen.Dashboard }
+                            )
+                        }
+                        is Screen.Control -> {
+                            ControlScreen(viewModel = viewModel)
+                        }
+                        is Screen.Settings -> {
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                currentThemeMode = themeMode,
+                                onThemeModeChange = { themeMode = it },
+                                onLogout = {
+                                    viewModel.logout()
+                                    currentScreen = Screen.Login
+                                }
+                            )
+                        }
                     }
                 }
             }

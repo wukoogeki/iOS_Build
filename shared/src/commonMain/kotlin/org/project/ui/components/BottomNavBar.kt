@@ -1,8 +1,8 @@
 package org.project.ui.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -12,14 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.navigation.Screen
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.BlendColorEntry
-import top.yukonga.miuix.kmp.blur.BlurBlendMode
-import top.yukonga.miuix.kmp.blur.BlurColors
-import top.yukonga.miuix.kmp.blur.BlurDefaults
-import top.yukonga.miuix.kmp.blur.highlight.Highlight
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -35,55 +27,21 @@ fun BottomNavBar(
         ColorSchemeMode.System, ColorSchemeMode.MonetSystem -> isSystemInDarkTheme()
     }
 
-    val backdrop = rememberLayerBackdrop {
-        val bgColor = if (isDark) {
-            Color(0xFF1C1C1E)
-        } else {
-            Color(0xFFF2F2F7)
-        }
-        drawRect(bgColor)
-        drawContent()
-    }
-
-    val blurColors = if (isDark) {
-        BlurDefaults.blurColors(
-            blendColors = listOf(
-                BlendColorEntry(Color(0xFF2C2C2E).copy(alpha = 0.6f), BlurBlendMode.SrcOver),
-                BlendColorEntry(Color(0xFF3A3A3C).copy(alpha = 0.15f), BlurBlendMode.Overlay)
-            ),
-            brightness = 0.02f,
-            contrast = 1.05f,
-            saturation = 1.1f
-        )
+    val backgroundColor = if (isDark) {
+        Color(0xFF1C1C1E)
     } else {
-        BlurDefaults.blurColors(
-            blendColors = listOf(
-                BlendColorEntry(Color.White.copy(alpha = 0.55f), BlurBlendMode.SrcOver),
-                BlendColorEntry(Color(0xFFF5F5F7).copy(alpha = 0.2f), BlurBlendMode.Screen)
-            ),
-            brightness = 0.05f,
-            contrast = 1.05f,
-            saturation = 1.15f
-        )
-    }
-
-    val highlight = if (isDark) {
-        Highlight.GlassStrokeMiddleDark
-    } else {
-        Highlight.GlassStrokeMiddleLight
+        Color.White
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .textureBlur(
-                backdrop = backdrop,
-                shape = RoundedCornerShape(16.dp),
-                blurRadius = 40f,
-                colors = blurColors,
-                highlight = highlight
-            )
+            .background(
+                color = backgroundColor,
+                shape = RoundedCornerShape(28.dp)
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier

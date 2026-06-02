@@ -23,6 +23,13 @@ class AppViewModel {
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
+    init {
+        if (ApiConfig.isLoggedIn()) {
+            val savedUsername = ApiConfig.getUsername() ?: "用户"
+            state = state.copy(isLoggedIn = true, currentUser = savedUsername)
+        }
+    }
+
     fun clearError() {
         errorMessage = null
     }
@@ -32,6 +39,7 @@ class AppViewModel {
     }
 
     fun onLoginSuccess(username: String) {
+        ApiConfig.saveUsername(username)
         state = state.copy(isLoggedIn = true, currentUser = username)
         loadDevices()
     }
@@ -121,6 +129,7 @@ class AppViewModel {
             selectedDevice = null,
             historyData = emptyList()
         )
+        ApiConfig.reset()
         scope.launch {
             repository.logout()
         }

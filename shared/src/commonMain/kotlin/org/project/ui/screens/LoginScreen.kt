@@ -124,13 +124,5 @@ fun LoginScreen(
         ) {
             Text("登录")
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = "测试账号: admin / admin",
-            style = MiuixTheme.textStyles.footnote2,
-            color = MiuixTheme.colorScheme.secondary
-        )
     }
 }

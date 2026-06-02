@@ -1,26 +1,60 @@
 package org.project.data.api
 
+import org.project.data.local.LocalStorage
+import org.project.data.local.StorageKeys
+
 object ApiConfig {
-    var baseUrl: String = "https://illicitly-chaste-disband.ngrok-free.dev/api"
+    const val BASE_URL = "https://illicitly-chaste-disband.ngrok-free.dev/api"
 
-    const val DEFAULT_BASE_URL = "https://illicitly-chaste-disband.ngrok-free.dev/api"
-
+    private var currentBaseUrl: String = BASE_URL
     private var authToken: String? = null
 
+    init {
+        // Load saved token on init
+        val savedToken = LocalStorage.getString(StorageKeys.AUTH_TOKEN)
+        if (savedToken != null) {
+            authToken = savedToken
+        }
+    }
+
+    fun getBaseUrl(): String = currentBaseUrl
+
     fun configure(url: String) {
-        baseUrl = url.trimEnd('/')
+        currentBaseUrl = url.trimEnd('/')
     }
 
     fun reset() {
-        baseUrl = DEFAULT_BASE_URL
+        currentBaseUrl = BASE_URL
         authToken = null
+        LocalStorage.remove(StorageKeys.AUTH_TOKEN)
+        LocalStorage.remove(StorageKeys.USERNAME)
+        LocalStorage.remove(StorageKeys.IS_LOGGED_IN)
     }
 
     fun setAuthToken(token: String?) {
         authToken = token
+        if (token != null) {
+            LocalStorage.saveString(StorageKeys.AUTH_TOKEN, token)
+            LocalStorage.saveString(StorageKeys.IS_LOGGED_IN, "true")
+        } else {
+            LocalStorage.remove(StorageKeys.AUTH_TOKEN)
+            LocalStorage.remove(StorageKeys.IS_LOGGED_IN)
+        }
     }
 
     fun getAuthToken(): String? = authToken
+
+    fun isLoggedIn(): Boolean {
+        return LocalStorage.getString(StorageKeys.IS_LOGGED_IN) == "true" && authToken != null
+    }
+
+    fun saveUsername(username: String) {
+        LocalStorage.saveString(StorageKeys.USERNAME, username)
+    }
+
+    fun getUsername(): String? {
+        return LocalStorage.getString(StorageKeys.USERNAME)
+    }
 }
 
 object ApiRoutes {

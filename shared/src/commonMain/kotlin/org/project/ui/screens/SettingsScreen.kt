@@ -1,11 +1,15 @@
 package org.project.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
@@ -44,11 +48,6 @@ fun SettingsScreen(
         }
 
         item {
-            SystemInfoCard()
-            Spacer(Modifier.height(16.dp))
-        }
-
-        item {
             LogoutButton(onLogout)
             Spacer(Modifier.height(32.dp))
         }
@@ -81,17 +80,38 @@ private fun ThemeSelectorCard(
                         .fillMaxWidth()
                         .clickable { onThemeChange(mode) }
                         .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = label,
                         style = MiuixTheme.textStyles.body2
                     )
-                    Text(
-                        text = if (isSelected) "✓" else "",
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.primary
-                    )
+                    // Radio button style: outer circle with inner dot
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(
+                                color = if (isSelected) {
+                                    MiuixTheme.colorScheme.primary
+                                } else {
+                                    MiuixTheme.colorScheme.outline
+                                },
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        color = Color.White,
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -118,27 +138,6 @@ private fun UserInfoCard(viewModel: AppViewModel) {
 }
 
 @Composable
-private fun SystemInfoCard() {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "系统信息",
-                style = MiuixTheme.textStyles.title3,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            InfoRow(label = "系统名称", value = "环网柜微环境控制系统")
-            Spacer(Modifier.height(8.dp))
-            InfoRow(label = "软件版本", value = "v1.0.0")
-            Spacer(Modifier.height(8.dp))
-            InfoRow(label = "硬件版本", value = "HW-2024-A")
-            Spacer(Modifier.height(8.dp))
-            InfoRow(label = "通信协议", value = "Modbus RTU / TCP")
-        }
-    }
-}
-
-@Composable
 private fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -147,22 +146,33 @@ private fun InfoRow(label: String, value: String) {
         Text(
             text = label,
             style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.secondary
+            color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
         Text(
             text = value,
-            style = MiuixTheme.textStyles.body2
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.onSurface
         )
     }
 }
 
 @Composable
 private fun LogoutButton(onLogout: () -> Unit) {
-    Button(
-        onClick = onLogout,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColorsPrimary()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MiuixTheme.colorScheme.primary,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable { onLogout() }
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text("退出登录")
+        Text(
+            text = "退出登录",
+            color = Color.White,
+            style = MiuixTheme.textStyles.body1
+        )
     }
 }

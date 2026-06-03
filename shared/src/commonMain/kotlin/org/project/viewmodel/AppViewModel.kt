@@ -71,8 +71,8 @@ class AppViewModel {
                         selectDevice(device)
                     }
                 }
-                .onFailure { e ->
-                    errorMessage = e.message ?: "加载设备列表失败"
+                .onFailure {
+                    errorMessage = "加载失败"
                 }
             isLoading = false
         }
@@ -87,8 +87,8 @@ class AppViewModel {
                         currentMode = determineWorkMode(data)
                     )
                 }
-                .onFailure { e ->
-                    errorMessage = e.message
+                .onFailure {
+                    errorMessage = "加载失败"
                 }
         }
     }
@@ -99,8 +99,8 @@ class AppViewModel {
                 .onSuccess { history ->
                     state = state.copy(historyData = history)
                 }
-                .onFailure { e ->
-                    errorMessage = e.message
+                .onFailure {
+                    errorMessage = "加载失败"
                 }
         }
     }
@@ -114,8 +114,8 @@ class AppViewModel {
                     onLoginSuccess(username)
                     onSuccess()
                 }
-                .onFailure { e ->
-                    errorMessage = e.message ?: "登录失败"
+                .onFailure {
+                    errorMessage = "登录失败"
                 }
             isLoading = false
         }
@@ -147,8 +147,8 @@ class AppViewModel {
                 .onSuccess { newState ->
                     state = state.copy(deviceState = newState)
                 }
-                .onFailure { e ->
-                    errorMessage = e.message
+                .onFailure {
+                    errorMessage = "操作失败"
                 }
         }
     }

@@ -4,9 +4,11 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.project.navigation.Screen
 import org.project.ui.components.BottomNavBar
+import org.project.ui.components.ToastHost
 import org.project.ui.screens.*
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -29,6 +31,14 @@ fun App() {
     LaunchedEffect(Unit) {
         if (viewModel.state.isLoggedIn) {
             currentScreen = Screen.Dashboard
+        }
+    }
+
+    // Show toast when error message changes
+    LaunchedEffect(viewModel.errorMessage) {
+        if (viewModel.errorMessage != null) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.clearError()
         }
     }
 
@@ -117,7 +127,7 @@ fun App() {
                         }
                         is Screen.Control -> {
                             ControlScreen(viewModel = viewModel)
-                        }
+                            }
                         is Screen.Settings -> {
                             SettingsScreen(
                                 viewModel = viewModel,
@@ -131,6 +141,13 @@ fun App() {
                         }
                     }
                 }
+
+                // Toast overlay
+                ToastHost(
+                    message = viewModel.errorMessage,
+                    onDismiss = { viewModel.clearError() },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
         }
     }

@@ -2,12 +2,15 @@ package org.project.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.navigation.Screen
@@ -57,17 +60,23 @@ fun BottomNavBar(
 
             items.forEach { (screen, label) ->
                 val isSelected = currentScreen == screen
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+
+                val pressOverlay = if (isPressed) {
+                    MiuixTheme.colorScheme.primary.copy(alpha = 0.2f)
+                } else {
+                    Color.Transparent
+                }
+
                 Box(
                     modifier = Modifier
-                        .clickable { onScreenSelected(screen) }
-                        .background(
-                            color = if (isSelected) {
-                                MiuixTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            } else {
-                                Color.Transparent
-                            },
-                            shape = RoundedCornerShape(12.dp)
-                        )
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) { onScreenSelected(screen) }
+                        .background(color = pressOverlay, shape = RoundedCornerShape(12.dp))
                         .padding(horizontal = 24.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {

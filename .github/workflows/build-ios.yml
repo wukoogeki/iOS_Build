@@ -17,11 +17,13 @@ concurrency:
 jobs:
   build-ios:
     name: Build iOS App
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -78,6 +80,12 @@ jobs:
           echo "Kotlin version: $(grep 'kotlin =' gradle/libs.versions.toml | sed 's/.*\"\([^\"]*\)\".*/\1/')"
           echo "=== End Diagnosis ==="
 
+      - name: Clean build
+        run: |
+          echo "=== Cleaning previous builds ==="
+          ./gradlew clean --quiet
+          rm -rf build/ios build/derived build/ipa-output
+
       - name: Build shared Kotlin framework
         id: ios-build
         run: |
@@ -119,6 +127,16 @@ jobs:
           
           echo "=== iOS Framework Build Completed ==="
 
+      - name: Verify framework exists
+        run: |
+          FRAMEWORK_PATH="shared/build/bin/iosArm64/releaseFramework/Shared.framework"
+          if [ ! -d "$FRAMEWORK_PATH" ]; then
+            echo "::error::Framework not found at $FRAMEWORK_PATH"
+            exit 1
+          fi
+          echo "Framework found at: $FRAMEWORK_PATH"
+          ls -la "$FRAMEWORK_PATH"
+
       - name: Build iOS app (debug)
         run: |
           xcodebuild build \
@@ -126,19 +144,6 @@ jobs:
             -scheme iosApp \
             -sdk iphoneos \
             -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            | xcpretty --color || true
-
-      - name: Build iOS app for device (release)
-        run: |
-          xcodebuild build \
-            -project iosApp/iosApp.xcodeproj \
-            -scheme iosApp \
-            -sdk iphoneos \
-            -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \

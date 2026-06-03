@@ -59,11 +59,9 @@ fun DashboardScreen(viewModel: AppViewModel) {
     ) {
         item {
             Spacer(Modifier.height(16.dp))
-            if (selectedDevice != null) {
-                SelectedDeviceCard(selectedDevice)
-                Spacer(Modifier.height(16.dp))
-            }
-            WorkModeCard(state.currentMode, selectedDevice?.isOnline == false)
+            SelectedDeviceCard(selectedDevice)
+            Spacer(Modifier.height(16.dp))
+            WorkModeCard(state.currentMode, selectedDevice.isOnline == false)
             Spacer(Modifier.height(16.dp))
         }
 
@@ -81,7 +79,7 @@ fun DashboardScreen(viewModel: AppViewModel) {
             DeviceStatusCard(
                 deviceState = state.deviceState,
                 currentMode = state.currentMode,
-                isOnline = state.selectedDevice?.isOnline ?: true
+                isOnline = selectedDevice.isOnline == false
             )
             Spacer(Modifier.height(16.dp))
         }

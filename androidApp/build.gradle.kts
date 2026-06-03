@@ -45,10 +45,19 @@ android {
             useLegacyPackaging = false
         }
     }
+    signingConfigs {
+        create("release") {
+            storeFile = file("""REDACTED""")  // 密钥库文件路径
+            storePassword = "REDACTED"
+            keyAlias = "my-key-alias"
+            keyPassword = "REDACTED"
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

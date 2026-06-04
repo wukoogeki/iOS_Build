@@ -20,14 +20,6 @@ fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var showError by remember { mutableStateOf(false) }
-    val errorMessage = viewModel.errorMessage
-
-    LaunchedEffect(errorMessage) {
-        if (errorMessage != null) {
-            showError = true
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -63,7 +55,6 @@ fun LoginScreen(
             value = username,
             onValueChange = {
                 username = it
-                showError = false
                 viewModel.clearError()
             },
             modifier = Modifier.fillMaxWidth(),
@@ -86,7 +77,6 @@ fun LoginScreen(
             value = password,
             onValueChange = {
                 password = it
-                showError = false
                 viewModel.clearError()
             },
             modifier = Modifier.fillMaxWidth(),
@@ -97,23 +87,11 @@ fun LoginScreen(
             )
         )
 
-        if (showError) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = errorMessage ?: "用户名或密码错误",
-                color = MiuixTheme.colorScheme.error,
-                style = MiuixTheme.textStyles.footnote1
-            )
-        }
-
         Spacer(Modifier.height(32.dp))
 
         Button(
             onClick = {
-                if (username.isBlank() || password.isBlank()) {
-                    showError = true
-                } else {
-                    showError = false
+                if (username.isNotBlank() && password.isNotBlank()) {
                     viewModel.login(username, password) {
                         onLoginSuccess()
                     }

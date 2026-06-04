@@ -23,6 +23,29 @@ class AppViewModel {
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
+    private fun Throwable.toUserMessage(): String {
+        val msg = message ?: "未知错误"
+        return when {
+            msg.contains("Connection refused", ignoreCase = true) -> "服务器拒绝连接"
+            msg.contains("connect timed out", ignoreCase = true) ||
+                msg.contains("timeout", ignoreCase = true) ||
+                msg.contains("timed out", ignoreCase = true) -> "连接超时，请检查网络"
+            msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("Name or service not known", ignoreCase = true) ||
+                msg.contains("nodename nor servname", ignoreCase = true) -> "网络不可达，请检查网络连接"
+            msg.contains("401", ignoreCase = true) -> "用户名或密码错误"
+            msg.contains("403", ignoreCase = true) -> "没有权限访问"
+            msg.contains("404", ignoreCase = true) -> "请求的资源不存在"
+            msg.contains("500", ignoreCase = true) -> "服务器内部错误"
+            msg.contains("502", ignoreCase = true) -> "网关错误"
+            msg.contains("503", ignoreCase = true) -> "服务暂不可用"
+            msg.contains("SSLHandshakeException", ignoreCase = true) ||
+                msg.contains("SSL", ignoreCase = true) -> "安全连接失败"
+            msg.contains("Fail to fetch", ignoreCase = true) -> "网络请求失败，请检查网络连接"
+            else -> msg
+        }
+    }
+
     init {
         if (ApiConfig.isLoggedIn()) {
             val savedUsername = ApiConfig.getUsername() ?: "用户"
@@ -72,7 +95,7 @@ class AppViewModel {
                     }
                 }
                 .onFailure {
-                    errorMessage = "加载失败"
+                    errorMessage = it.toUserMessage()
                 }
             isLoading = false
         }
@@ -88,7 +111,7 @@ class AppViewModel {
                     )
                 }
                 .onFailure {
-                    errorMessage = "加载失败"
+                    errorMessage = it.toUserMessage()
                 }
         }
     }
@@ -100,7 +123,7 @@ class AppViewModel {
                     state = state.copy(historyData = history)
                 }
                 .onFailure {
-                    errorMessage = "加载失败"
+                    errorMessage = it.toUserMessage()
                 }
         }
     }
@@ -115,7 +138,7 @@ class AppViewModel {
                     onSuccess()
                 }
                 .onFailure {
-                    errorMessage = "登录失败"
+                    errorMessage = it.toUserMessage()
                 }
             isLoading = false
         }
@@ -148,7 +171,7 @@ class AppViewModel {
                     state = state.copy(deviceState = newState)
                 }
                 .onFailure {
-                    errorMessage = "操作失败"
+                    errorMessage = it.toUserMessage()
                 }
         }
     }

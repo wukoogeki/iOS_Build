@@ -47,10 +47,10 @@ android {
     }
     signingConfigs {
         create("release") {
-            storeFile = file("""REDACTED""")  // 密钥库文件路径
-            storePassword = "REDACTED"
+            storeFile = file("""D:\Code\Path\KEY\my-release-key.jks""")  // 密钥库文件路径
+            storePassword = "#zrKBXow4~=75w"
             keyAlias = "my-key-alias"
-            keyPassword = "REDACTED"
+            keyPassword = "#zrKBXow4~=75w"
         }
     }
     buildTypes {

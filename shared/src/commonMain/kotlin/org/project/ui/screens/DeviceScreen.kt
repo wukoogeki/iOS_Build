@@ -2,6 +2,8 @@ package org.project.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.data.CabinetDevice
@@ -76,14 +79,21 @@ fun DeviceScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
+            val abnormalInteractionSource = remember { MutableInteractionSource() }
+            val isAbnormalPressed by abnormalInteractionSource.collectIsPressedAsState()
+
             Box(
                 modifier = Modifier
-                    .clickable { showAbnormalOnly = !showAbnormalOnly }
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(
+                        interactionSource = abnormalInteractionSource,
+                        indication = null
+                    ) { showAbnormalOnly = !showAbnormalOnly }
                     .background(
-                        if (showAbnormalOnly) {
-                            MiuixTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        } else {
-                            MiuixTheme.colorScheme.surface
+                        when {
+                            isAbnormalPressed -> MiuixTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            showAbnormalOnly -> MiuixTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            else -> MiuixTheme.colorScheme.surface
                         },
                         shape = RoundedCornerShape(8.dp)
                     )

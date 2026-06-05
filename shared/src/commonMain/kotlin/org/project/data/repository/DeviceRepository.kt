@@ -1,11 +1,10 @@
 package org.project.data.repository
 
-import org.project.data.api.ApiService
 import org.project.data.CabinetDevice
-import org.project.data.DeviceState
 import org.project.data.DeviceStatus
 import org.project.data.EnvironmentData
-import org.project.data.WorkMode
+import org.project.data.WeatherInfo
+import org.project.data.api.ApiService
 
 class DeviceRepository private constructor() {
     private val apiService = ApiService.instance
@@ -22,25 +21,43 @@ class DeviceRepository private constructor() {
         return apiService.getDevices()
     }
 
-    suspend fun getDeviceById(deviceId: String): Result<CabinetDevice> {
-        return apiService.getDeviceById(deviceId)
+    suspend fun getDeviceLatest(deviceId: String): Result<EnvironmentData> {
+        return apiService.getDeviceLatest(deviceId)
     }
 
-    suspend fun getDeviceData(deviceId: String): Result<EnvironmentData> {
-        return apiService.getDeviceData(deviceId)
+    suspend fun getDeviceHistory(deviceId: String, hours: Int = 24): Result<List<EnvironmentData>> {
+        return apiService.getDeviceHistory(deviceId, hours)
     }
 
-    suspend fun getDeviceHistory(deviceId: String): Result<List<EnvironmentData>> {
-        return apiService.getDeviceHistory(deviceId)
+    suspend fun controlFan(deviceId: String, status: DeviceStatus): Result<Unit> {
+        val command = when (status) {
+            DeviceStatus.ON -> "FAN_ON"
+            DeviceStatus.OFF -> "FAN_OFF"
+            DeviceStatus.AUTO -> "FAN_AUTO"
+        }
+        return apiService.sendCommand(deviceId, command)
     }
 
-    suspend fun controlDevice(
-        deviceId: String,
-        fan: DeviceStatus? = null,
-        heater: DeviceStatus? = null,
-        dehumidifier: DeviceStatus? = null
-    ): Result<DeviceState> {
-        return apiService.controlDevice(deviceId, fan, heater, dehumidifier)
+    suspend fun controlHeater(deviceId: String, status: DeviceStatus): Result<Unit> {
+        val command = when (status) {
+            DeviceStatus.ON -> "HEATER_ON"
+            DeviceStatus.OFF -> "HEATER_OFF"
+            DeviceStatus.AUTO -> "HEATER_AUTO"
+        }
+        return apiService.sendCommand(deviceId, command)
+    }
+
+    suspend fun controlDehumidifier(deviceId: String, status: DeviceStatus): Result<Unit> {
+        val command = when (status) {
+            DeviceStatus.ON -> "DEHUMIDIFIER_ON"
+            DeviceStatus.OFF -> "DEHUMIDIFIER_OFF"
+            DeviceStatus.AUTO -> "DEHUMIDIFIER_AUTO"
+        }
+        return apiService.sendCommand(deviceId, command)
+    }
+
+    suspend fun getWeather(): Result<WeatherInfo> {
+        return apiService.getWeather()
     }
 
     companion object {

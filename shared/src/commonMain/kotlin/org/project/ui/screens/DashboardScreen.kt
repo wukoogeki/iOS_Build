@@ -27,72 +27,175 @@ fun DashboardScreen(viewModel: AppViewModel) {
     val state = viewModel.state
     val selectedDevice = state.selectedDevice
 
-    if (selectedDevice == null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "请先选择设备",
-                    style = MiuixTheme.textStyles.title2,
-                    color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "点击底部导航栏「设备」选择要查看的环网柜",
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.secondary
-                )
-            }
-        }
-        return
-    }
-
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 16.dp)
     ) {
-        item {
+        Spacer(Modifier.height(16.dp))
+        DeviceOverviewCard(state.devices)
+        Spacer(Modifier.height(16.dp))
+
+        if (selectedDevice == null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "请先选择设备",
+                        style = MiuixTheme.textStyles.title2,
+                        color = MiuixTheme.colorScheme.onBackground
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "点击底部导航栏「设备」选择要查看的环网柜",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onBackground
+                    )
+                }
+            }
             Spacer(Modifier.height(16.dp))
-            SelectedDeviceCard(selectedDevice)
-            Spacer(Modifier.height(16.dp))
-            WorkModeCard(state.currentMode, selectedDevice.isOnline == false)
-            Spacer(Modifier.height(16.dp))
+            return@Column
         }
 
-        item {
-            EnvironmentDataCard(state.currentData)
-            Spacer(Modifier.height(16.dp))
-        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item {
+                SelectedDeviceCard(selectedDevice)
+                Spacer(Modifier.height(16.dp))
+                WorkModeCard(state.currentMode, selectedDevice.isOnline == false)
+                Spacer(Modifier.height(16.dp))
+            }
 
-        item {
-            HistoryChartCard(state.historyData)
-            Spacer(Modifier.height(16.dp))
-        }
+            item {
+                EnvironmentDataCard(state.currentData)
+                Spacer(Modifier.height(16.dp))
+            }
 
-        item {
-            DeviceStatusCard(
-                deviceState = state.deviceState,
-                currentMode = state.currentMode,
-                isOnline = selectedDevice.isOnline == false
+            item {
+                HistoryChartCard(state.historyData)
+                Spacer(Modifier.height(16.dp))
+            }
+
+            item {
+                DeviceStatusCard(
+                    deviceState = state.deviceState,
+                    currentMode = state.currentMode,
+                    isOnline = selectedDevice.isOnline == false
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            item {
+                ControlCard(
+                    deviceState = state.deviceState,
+                    onFanChange = { viewModel.setDeviceStatus("fan", it) },
+                    onHeaterChange = { viewModel.setDeviceStatus("heater", it) },
+                    onDehumidifierChange = { viewModel.setDeviceStatus("dehumidifier", it) }
+                )
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>) {
+    val total = devices.size
+    val normal = devices.count { it.isOnline && !it.alarm.isAbnormal }
+    val offline = devices.count { !it.isOnline }
+    val warning = devices.count { it.isOnline && it.alarm.severity == org.project.data.AlarmSeverity.WARNING }
+    val critical = devices.count { it.isOnline && it.alarm.severity == org.project.data.AlarmSeverity.CRITICAL }
+    val abnormal = offline + warning + critical
+
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "设备总览",
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                OverviewItem(
+                    label = "设备总数",
+                    value = total.toString(),
+                    color = MiuixTheme.colorScheme.primary
+                )
+                OverviewItem(
+                    label = "正常运行",
+                    value = normal.toString(),
+                    color = Color(0xFF2E7D32)
+                )
+                OverviewItem(
+                    label = "异常设备",
+                    value = abnormal.toString(),
+                    color = if (abnormal > 0) Color(0xFFC62828) else Color(0xFF9E9E9E)
+                )
+            }
+            if (abnormal > 0) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    OverviewItem(
+                        label = "离线",
+                        value = offline.toString(),
+                        color = Color(0xFF9E9E9E)
+                    )
+                    OverviewItem(
+                        label = "一般告警",
+                        value = warning.toString(),
+                        color = Color(0xFFFFA726)
+                    )
+                    OverviewItem(
+                        label = "严重告警",
+                        value = critical.toString(),
+                        color = Color(0xFFC62828)
+                    )
+                }
+            }
         }
+    }
+}
 
-        item {
-            ControlCard(
-                deviceState = state.deviceState,
-                onFanChange = { viewModel.setDeviceStatus("fan", it) },
-                onHeaterChange = { viewModel.setDeviceStatus("heater", it) },
-                onDehumidifierChange = { viewModel.setDeviceStatus("dehumidifier", it) }
-            )
-            Spacer(Modifier.height(32.dp))
-        }
+@Composable
+private fun OverviewItem(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MiuixTheme.textStyles.title1,
+            color = color
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MiuixTheme.textStyles.footnote2,
+            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
     }
 }
 
@@ -245,6 +348,42 @@ private fun EnvironmentDataCard(data: EnvironmentData) {
                     unit = "°C",
                     color = Color(0xFF9C27B0)
                 )
+            }
+
+            if (data.lightLx > 0) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "光照强度",
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = "${data.lightLx} lx",
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.onBackground
+                    )
+                }
+            }
+
+            if (data.alarmCode != 0) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    color = Color(0xFFFFEBEE),
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "告警 (${data.alarmCode}): ${data.alarmMessage}",
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = Color(0xFFC62828),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
     }

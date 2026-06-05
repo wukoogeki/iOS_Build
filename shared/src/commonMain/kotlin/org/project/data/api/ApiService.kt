@@ -71,64 +71,38 @@ class ApiService private constructor() {
         }
     }
 
-    suspend fun getDeviceById(deviceId: String): Result<CabinetDevice> = runCatching {
-        val response: DeviceDetailResponse = client.get(
-            "$baseUrl${ApiRoutes.DEVICE_BY_ID.replace("{id}", deviceId)}"
+    suspend fun getDeviceLatest(deviceId: String): Result<EnvironmentData> = runCatching {
+        val response: ApiEnvironmentData = client.get(
+            "$baseUrl${ApiRoutes.DEVICE_LATEST.replace("{id}", deviceId)}"
         ).body()
-        if (response.success && response.device != null) {
-            response.device.toModel()
-        } else {
-            throw Exception(response.message ?: "Failed to get device")
-        }
+        response.toModel()
     }
 
-    suspend fun getDeviceData(deviceId: String): Result<EnvironmentData> = runCatching {
-        val response: DeviceDataResponse = client.get(
-            "$baseUrl${ApiRoutes.DEVICE_DATA.replace("{id}", deviceId)}"
-        ).body()
-        if (response.success && response.data != null) {
-            response.data.toModel()
-        } else {
-            throw Exception(response.message ?: "Failed to get device data")
-        }
-    }
-
-    suspend fun getDeviceHistory(deviceId: String): Result<List<EnvironmentData>> = runCatching {
+    suspend fun getDeviceHistory(deviceId: String, hours: Int = 24): Result<List<EnvironmentData>> = runCatching {
         val response: DeviceHistoryResponse = client.get(
-            "$baseUrl${ApiRoutes.DEVICE_HISTORY.replace("{id}", deviceId)}"
+            "$baseUrl${ApiRoutes.DEVICE_HISTORY.replace("{id}", deviceId)}?hours=$hours"
         ).body()
-        if (response.success) {
-            response.history.map { it.toModel() }
-        } else {
-            throw Exception(response.message ?: "Failed to get history")
-        }
+        response.history.map { it.toModel() }
     }
 
-    suspend fun controlDevice(
+    suspend fun sendCommand(
         deviceId: String,
-        fan: DeviceStatus? = null,
-        heater: DeviceStatus? = null,
-        dehumidifier: DeviceStatus? = null
-    ): Result<DeviceState> = runCatching {
-        val request = DeviceControlRequest(
-            fan = fan?.name,
-            heater = heater?.name,
-            dehumidifier = dehumidifier?.name
-        )
-        val response: DeviceControlResponse = client.post(
-            "$baseUrl${ApiRoutes.DEVICE_CONTROL.replace("{id}", deviceId)}"
+        command: String,
+        issuedBy: String = "app"
+    ): Result<Unit> = runCatching {
+        val response: CommandResponse = client.post(
+            "$baseUrl${ApiRoutes.DEVICE_COMMAND.replace("{id}", deviceId)}"
         ) {
-            setBody(request)
+            setBody(CommandRequest(command, issuedBy))
         }.body()
-        if (response.success && response.deviceState != null) {
-            response.deviceState.toModel()
-        } else {
-            throw Exception(response.message ?: "Control failed")
+        if (!response.success) {
+            throw Exception(response.message ?: "Command failed")
         }
     }
 
-    suspend fun getSystemStatus(): Result<SystemStatusResponse> = runCatching {
-        client.get("$baseUrl${ApiRoutes.SYSTEM_STATUS}").body()
+    suspend fun getWeather(): Result<WeatherInfo> = runCatching {
+        val response: WeatherResponse = client.get("$baseUrl${ApiRoutes.WEATHER}").body()
+        response.toModel()
     }
 
     fun close() {

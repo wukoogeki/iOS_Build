@@ -23,6 +23,9 @@ class AppViewModel {
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
+    var isTokenExpired by mutableStateOf(false)
+        private set
+
     private fun Throwable.toUserMessage(): String {
         val msg = message ?: "未知错误"
         return when {
@@ -33,6 +36,7 @@ class AppViewModel {
             msg.contains("Unable to resolve host", ignoreCase = true) ||
                 msg.contains("Name or service not known", ignoreCase = true) ||
                 msg.contains("nodename nor servname", ignoreCase = true) -> "网络不可达，请检查网络连接"
+            msg.contains("Token无效或已过期", ignoreCase = true) -> "登录已过期，请重新登录"
             msg.contains("401", ignoreCase = true) -> "用户名或密码错误"
             msg.contains("403", ignoreCase = true) -> "没有权限访问"
             msg.contains("404", ignoreCase = true) -> "请求的资源不存在"
@@ -46,6 +50,11 @@ class AppViewModel {
         }
     }
 
+    private fun Throwable.isTokenExpiredError(): Boolean {
+        return message?.contains("Token无效或已过期", ignoreCase = true) == true ||
+                message?.contains("401", ignoreCase = true) == true
+    }
+
     init {
         if (ApiConfig.isLoggedIn()) {
             val savedUsername = ApiConfig.getUsername() ?: "用户"
@@ -57,12 +66,26 @@ class AppViewModel {
         errorMessage = null
     }
 
+    fun onTokenExpired() {
+        ApiConfig.clearAuth()
+        isTokenExpired = true
+    }
+
+    private inline fun handleError(e: Throwable) {
+        if (e.isTokenExpiredError()) {
+            onTokenExpired()
+        } else {
+            errorMessage = e.toUserMessage()
+        }
+    }
+
     fun configureApi(baseUrl: String) {
         ApiConfig.configure(baseUrl)
     }
 
     fun onLoginSuccess(username: String) {
         ApiConfig.saveUsername(username)
+        isTokenExpired = false
         state = state.copy(isLoggedIn = true, currentUser = username)
         loadDevices()
     }
@@ -95,7 +118,7 @@ class AppViewModel {
                     }
                 }
                 .onFailure {
-                    errorMessage = it.toUserMessage()
+                    handleError(it)
                 }
             isLoading = false
         }
@@ -103,7 +126,7 @@ class AppViewModel {
 
     private fun loadDeviceData(deviceId: String) {
         scope.launch {
-            repository.getDeviceData(deviceId)
+            repository.getDeviceLatest(deviceId)
                 .onSuccess { data ->
                     state = state.copy(
                         currentData = data,
@@ -111,7 +134,7 @@ class AppViewModel {
                     )
                 }
                 .onFailure {
-                    errorMessage = it.toUserMessage()
+                    handleError(it)
                 }
         }
     }
@@ -123,7 +146,7 @@ class AppViewModel {
                     state = state.copy(historyData = history)
                 }
                 .onFailure {
-                    errorMessage = it.toUserMessage()
+                    handleError(it)
                 }
         }
     }
@@ -138,7 +161,7 @@ class AppViewModel {
                     onSuccess()
                 }
                 .onFailure {
-                    errorMessage = it.toUserMessage()
+                    handleError(it)
                 }
             isLoading = false
         }
@@ -162,17 +185,27 @@ class AppViewModel {
         val deviceId = state.selectedDevice?.id ?: return
 
         scope.launch {
-            val fan = if (device == "fan") status else null
-            val heater = if (device == "heater") status else null
-            val dehumidifier = if (device == "dehumidifier") status else null
+            val result = when (device) {
+                "fan" -> repository.controlFan(deviceId, status)
+                "heater" -> repository.controlHeater(deviceId, status)
+                "dehumidifier" -> repository.controlDehumidifier(deviceId, status)
+                else -> return@launch
+            }
 
-            repository.controlDevice(deviceId, fan, heater, dehumidifier)
-                .onSuccess { newState ->
-                    state = state.copy(deviceState = newState)
-                }
-                .onFailure {
-                    errorMessage = it.toUserMessage()
-                }
+            result.onSuccess {
+                val currentFan = if (device == "fan") status else state.deviceState.fan
+                val currentHeater = if (device == "heater") status else state.deviceState.heater
+                val currentDehumidifier = if (device == "dehumidifier") status else state.deviceState.dehumidifier
+                state = state.copy(
+                    deviceState = DeviceState(
+                        fan = currentFan,
+                        heater = currentHeater,
+                        dehumidifier = currentDehumidifier
+                    )
+                )
+            }.onFailure {
+                handleError(it)
+            }
         }
     }
 
@@ -185,7 +218,8 @@ class AppViewModel {
 
     private fun determineWorkMode(data: EnvironmentData): WorkMode {
         return when {
-            data.humidity > 85f -> WorkMode.ALARM
+            data.alarmCode != 0 -> WorkMode.ALARM
+            data.humidity > 85f -> WorkMode.DEHUMIDIFY
             data.humidity > 75f -> WorkMode.DEHUMIDIFY
             data.temperature < 5f -> WorkMode.HEAT
             data.temperature > 35f -> WorkMode.VENTILATE

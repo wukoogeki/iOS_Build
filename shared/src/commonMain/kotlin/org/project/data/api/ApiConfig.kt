@@ -31,6 +31,12 @@ object ApiConfig {
         LocalStorage.remove(StorageKeys.IS_LOGGED_IN)
     }
 
+    fun clearAuth() {
+        authToken = null
+        LocalStorage.remove(StorageKeys.AUTH_TOKEN)
+        LocalStorage.remove(StorageKeys.IS_LOGGED_IN)
+    }
+
     fun setAuthToken(token: String?) {
         authToken = token
         if (token != null) {
@@ -61,9 +67,8 @@ object ApiRoutes {
     const val LOGIN = "/auth/login"
     const val LOGOUT = "/auth/logout"
     const val DEVICES = "/devices"
-    const val DEVICE_BY_ID = "/devices/{id}"
-    const val DEVICE_DATA = "/devices/{id}/data"
-    const val DEVICE_HISTORY = "/devices/{id}/history"
-    const val DEVICE_CONTROL = "/devices/{id}/control"
-    const val SYSTEM_STATUS = "/system/status"
+    const val DEVICE_LATEST = "/device/{id}/latest"
+    const val DEVICE_HISTORY = "/device/{id}/history"
+    const val DEVICE_COMMAND = "/device/{id}/command"
+    const val WEATHER = "/weather"
 }

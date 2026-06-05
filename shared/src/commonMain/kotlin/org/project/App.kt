@@ -42,6 +42,13 @@ fun App() {
         }
     }
 
+    // Redirect to login when token is expired
+    LaunchedEffect(viewModel.isTokenExpired) {
+        if (viewModel.isTokenExpired) {
+            currentScreen = Screen.Login
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.dispose()

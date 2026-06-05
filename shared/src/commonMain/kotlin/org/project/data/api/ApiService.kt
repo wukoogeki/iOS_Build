@@ -31,6 +31,7 @@ class ApiService private constructor() {
         }
         defaultRequest {
             contentType(ContentType.Application.Json)
+            header("ngrok-skip-browser-warning", "true")
             ApiConfig.getAuthToken()?.let { token ->
                 header(HttpHeaders.Authorization, "Bearer $token")
             }

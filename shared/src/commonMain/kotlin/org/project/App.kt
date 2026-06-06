@@ -124,7 +124,13 @@ fun App() {
                             )
                         }
                         is Screen.Dashboard -> {
-                            DashboardScreen(viewModel = viewModel)
+                            DashboardScreen(
+                                viewModel = viewModel,
+                                onNavigateToDevices = {
+                                    viewModel.loadDevices()
+                                    currentScreen = Screen.Device
+                                }
+                            )
                         }
                         is Screen.Device -> {
                             DeviceScreen(

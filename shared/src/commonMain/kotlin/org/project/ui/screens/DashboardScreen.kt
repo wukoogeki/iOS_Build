@@ -23,9 +23,17 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun DashboardScreen(viewModel: AppViewModel) {
+fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {}) {
     val state = viewModel.state
     val selectedDevice = state.selectedDevice
+
+    // 每 10 秒刷新设备列表（设备总览数据）
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(10_000)
+            viewModel.loadDevices()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -33,7 +41,7 @@ fun DashboardScreen(viewModel: AppViewModel) {
             .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(16.dp))
-        DeviceOverviewCard(state.devices)
+        DeviceOverviewCard(state.devices, onClick = onNavigateToDevices)
         Spacer(Modifier.height(16.dp))
 
         if (selectedDevice == null) {
@@ -112,7 +120,7 @@ fun DashboardScreen(viewModel: AppViewModel) {
 }
 
 @Composable
-private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>) {
+private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>, onClick: () -> Unit = {}) {
     val total = devices.size
     val normal = devices.count { it.isOnline && !it.alarm.isAbnormal }
     val offline = devices.count { !it.isOnline }
@@ -121,7 +129,9 @@ private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>) {
     val abnormal = offline + warning + critical
 
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier

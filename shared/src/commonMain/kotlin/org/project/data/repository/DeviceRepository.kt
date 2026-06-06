@@ -21,21 +21,12 @@ class DeviceRepository private constructor() {
         return apiService.getDevices()
     }
 
-    suspend fun getDeviceLatest(deviceId: String): Result<EnvironmentData> {
+    suspend fun getDeviceLatest(deviceId: String): Result<CabinetDevice> {
         return apiService.getDeviceLatest(deviceId)
     }
 
     suspend fun getDeviceHistory(deviceId: String, hours: Int = 24): Result<List<EnvironmentData>> {
         return apiService.getDeviceHistory(deviceId, hours)
-    }
-
-    suspend fun controlFan(deviceId: String, status: DeviceStatus): Result<Unit> {
-        val command = when (status) {
-            DeviceStatus.ON -> "FAN_ON"
-            DeviceStatus.OFF -> "FAN_OFF"
-            DeviceStatus.AUTO -> "FAN_AUTO"
-        }
-        return apiService.sendCommand(deviceId, command)
     }
 
     suspend fun controlHeater(deviceId: String, status: DeviceStatus): Result<Unit> {
@@ -47,11 +38,38 @@ class DeviceRepository private constructor() {
         return apiService.sendCommand(deviceId, command)
     }
 
-    suspend fun controlDehumidifier(deviceId: String, status: DeviceStatus): Result<Unit> {
+    suspend fun controlFan(deviceId: String, status: DeviceStatus): Result<Unit> {
         val command = when (status) {
-            DeviceStatus.ON -> "DEHUMIDIFIER_ON"
-            DeviceStatus.OFF -> "DEHUMIDIFIER_OFF"
-            DeviceStatus.AUTO -> "DEHUMIDIFIER_AUTO"
+            DeviceStatus.ON -> "FAN_ON"
+            DeviceStatus.OFF -> "FAN_OFF"
+            DeviceStatus.AUTO -> "FAN_AUTO"
+        }
+        return apiService.sendCommand(deviceId, command)
+    }
+
+    suspend fun controlAtomizer(deviceId: String, status: DeviceStatus): Result<Unit> {
+        val command = when (status) {
+            DeviceStatus.ON -> "ATOMIZER_ON"
+            DeviceStatus.OFF -> "ATOMIZER_OFF"
+            DeviceStatus.AUTO -> "ATOMIZER_AUTO"
+        }
+        return apiService.sendCommand(deviceId, command)
+    }
+
+    suspend fun controlCooling(deviceId: String, status: DeviceStatus): Result<Unit> {
+        val command = when (status) {
+            DeviceStatus.ON -> "COOLING_ON"
+            DeviceStatus.OFF -> "COOLING_OFF"
+            DeviceStatus.AUTO -> "COOLING_AUTO"
+        }
+        return apiService.sendCommand(deviceId, command)
+    }
+
+    suspend fun controlBuzzer(deviceId: String, status: DeviceStatus): Result<Unit> {
+        val command = when (status) {
+            DeviceStatus.ON -> "BUZZER_ON"
+            DeviceStatus.OFF -> "BUZZER_OFF"
+            DeviceStatus.AUTO -> "BUZZER_AUTO"
         }
         return apiService.sendCommand(deviceId, command)
     }

@@ -179,10 +179,11 @@ class AppViewModel {
     private fun loadDeviceData(deviceId: String) {
         scope.launch {
             repository.getDeviceLatest(deviceId)
-                .onSuccess { data ->
+                .onSuccess { device ->
                     state = state.copy(
-                        currentData = data,
-                        currentMode = determineWorkMode(data)
+                        currentData = device.currentData,
+                        currentMode = determineWorkMode(device.currentData),
+                        deviceState = device.deviceState
                     )
                 }
                 .onFailure {
@@ -238,21 +239,27 @@ class AppViewModel {
 
         scope.launch {
             val result = when (device) {
-                "fan" -> repository.controlFan(deviceId, status)
                 "heater" -> repository.controlHeater(deviceId, status)
-                "dehumidifier" -> repository.controlDehumidifier(deviceId, status)
+                "fan" -> repository.controlFan(deviceId, status)
+                "atomizer" -> repository.controlAtomizer(deviceId, status)
+                "cooling" -> repository.controlCooling(deviceId, status)
+                "buzzer" -> repository.controlBuzzer(deviceId, status)
                 else -> return@launch
             }
 
             result.onSuccess {
-                val currentFan = if (device == "fan") status else state.deviceState.fan
                 val currentHeater = if (device == "heater") status else state.deviceState.heater
-                val currentDehumidifier = if (device == "dehumidifier") status else state.deviceState.dehumidifier
+                val currentFan = if (device == "fan") status else state.deviceState.fan
+                val currentAtomizer = if (device == "atomizer") status else state.deviceState.atomizer
+                val currentCooling = if (device == "cooling") status else state.deviceState.cooling
+                val currentBuzzer = if (device == "buzzer") status else state.deviceState.buzzer
                 state = state.copy(
                     deviceState = DeviceState(
-                        fan = currentFan,
                         heater = currentHeater,
-                        dehumidifier = currentDehumidifier
+                        fan = currentFan,
+                        atomizer = currentAtomizer,
+                        cooling = currentCooling,
+                        buzzer = currentBuzzer
                     )
                 )
             }.onFailure {

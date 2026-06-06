@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import org.project.data.AlarmCodeTable
+import org.project.data.AlarmSeverity
 import org.project.data.DeviceStatus
 import org.project.data.EnvironmentData
 import org.project.data.WorkMode
@@ -104,7 +106,7 @@ fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {
                 DeviceStatusCard(
                     deviceState = state.deviceState,
                     currentMode = state.currentMode,
-                    isOnline = selectedDevice.isOnline == false
+                    isOnline = selectedDevice.isOnline
                 )
                 Spacer(Modifier.height(16.dp))
             }
@@ -112,9 +114,11 @@ fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {
             item {
                 ControlCard(
                     deviceState = state.deviceState,
-                    onFanChange = { viewModel.setDeviceStatus("fan", it) },
                     onHeaterChange = { viewModel.setDeviceStatus("heater", it) },
-                    onDehumidifierChange = { viewModel.setDeviceStatus("dehumidifier", it) }
+                    onFanChange = { viewModel.setDeviceStatus("fan", it) },
+                    onAtomizerChange = { viewModel.setDeviceStatus("atomizer", it) },
+                    onCoolingChange = { viewModel.setDeviceStatus("cooling", it) },
+                    onBuzzerChange = { viewModel.setDeviceStatus("buzzer", it) }
                 )
                 Spacer(Modifier.height(32.dp))
             }
@@ -376,19 +380,37 @@ private fun EnvironmentDataCard(data: EnvironmentData) {
                 )
             }
 
-            if (data.alarmCode != 0) {
+            val alarmCodes = AlarmCodeTable.parseFromBitmask(data.alarmCode)
+            if (alarmCodes.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Surface(
-                    color = Color(0xFFFFEBEE),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = "告警 (${data.alarmCode}): ${data.alarmMessage}",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = Color(0xFFC62828),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    alarmCodes.forEach { alarm ->
+                        val bgColor = when (alarm.severity) {
+                            AlarmSeverity.CRITICAL -> Color(0xFFFFEBEE)
+                            AlarmSeverity.WARNING -> Color(0xFFFFF3E0)
+                            else -> Color(0xFFF5F5F5)
+                        }
+                        val textColor = when (alarm.severity) {
+                            AlarmSeverity.CRITICAL -> Color(0xFFB71C1C)
+                            AlarmSeverity.WARNING -> Color(0xFFE65100)
+                            else -> MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        }
+                        Surface(
+                            color = bgColor,
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "[${alarm.category}] ${alarm.meaning}",
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = textColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -660,11 +682,15 @@ private fun DeviceStatusCard(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            DeviceStatusItem("风扇", deviceState.fan, Color(0xFF4CAF50), isAbnormal)
-            Spacer(Modifier.height(8.dp))
             DeviceStatusItem("加热器", deviceState.heater, Color(0xFFFF9800), isAbnormal)
             Spacer(Modifier.height(8.dp))
-            DeviceStatusItem("除湿器", deviceState.dehumidifier, Color(0xFF2196F3), isAbnormal)
+            DeviceStatusItem("风扇", deviceState.fan, Color(0xFF4CAF50), isAbnormal)
+            Spacer(Modifier.height(8.dp))
+            DeviceStatusItem("雾化器", deviceState.atomizer, Color(0xFF2196F3), isAbnormal)
+            Spacer(Modifier.height(8.dp))
+            DeviceStatusItem("制冷器", deviceState.cooling, Color(0xFF9C27B0), isAbnormal)
+            Spacer(Modifier.height(8.dp))
+            DeviceStatusItem("蜂鸣器", deviceState.buzzer, Color(0xFFF44336), isAbnormal)
         }
     }
 }
@@ -707,9 +733,11 @@ private fun DeviceStatusItem(
 @Composable
 private fun ControlCard(
     deviceState: org.project.data.DeviceState,
-    onFanChange: (DeviceStatus) -> Unit,
     onHeaterChange: (DeviceStatus) -> Unit,
-    onDehumidifierChange: (DeviceStatus) -> Unit
+    onFanChange: (DeviceStatus) -> Unit,
+    onAtomizerChange: (DeviceStatus) -> Unit,
+    onCoolingChange: (DeviceStatus) -> Unit,
+    onBuzzerChange: (DeviceStatus) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -719,11 +747,15 @@ private fun ControlCard(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            DeviceControlRow("风扇", deviceState.fan, Color(0xFF4CAF50), onFanChange)
-            Spacer(Modifier.height(12.dp))
             DeviceControlRow("加热器", deviceState.heater, Color(0xFFFF9800), onHeaterChange)
             Spacer(Modifier.height(12.dp))
-            DeviceControlRow("除湿器", deviceState.dehumidifier, Color(0xFF2196F3), onDehumidifierChange)
+            DeviceControlRow("风扇", deviceState.fan, Color(0xFF4CAF50), onFanChange)
+            Spacer(Modifier.height(12.dp))
+            DeviceControlRow("雾化器", deviceState.atomizer, Color(0xFF2196F3), onAtomizerChange)
+            Spacer(Modifier.height(12.dp))
+            DeviceControlRow("制冷器", deviceState.cooling, Color(0xFF9C27B0), onCoolingChange)
+            Spacer(Modifier.height(12.dp))
+            DeviceControlRow("蜂鸣器", deviceState.buzzer, Color(0xFFF44336), onBuzzerChange)
         }
     }
 }

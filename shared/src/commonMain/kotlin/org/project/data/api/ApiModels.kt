@@ -9,6 +9,7 @@ import org.project.data.DeviceStatus
 import org.project.data.EnvironmentData
 import org.project.data.WeatherInfo
 import org.project.data.WorkMode
+import org.project.data.AlarmCodeTable
 
 @Serializable
 data class LoginRequest(
@@ -46,25 +47,28 @@ data class ApiCabinetDevice(
     val y: Float = 0f,
     @SerialName("isOnline") val isOnline: Boolean = true,
     @SerialName("currentData") val currentData: ApiEnvironmentData? = null,
-    @SerialName("workStatus") val workStatus: Int = 1,
     @SerialName("deviceState") val deviceState: ApiDeviceState? = null,
-    @SerialName("wifiStatus") val wifiStatus: Int = 1,
     @SerialName("alarm") val alarm: ApiAlarm? = null
 ) {
-    fun toModel(): CabinetDevice = CabinetDevice(
-        id = id,
-        name = name,
-        location = location,
-        x = x,
-        y = y,
-        isOnline = isOnline,
-        currentData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L),
-        currentMode = if (alarm != null && alarm.code != 0) WorkMode.ALARM else WorkMode.NORMAL,
-        deviceState = deviceState?.toModel() ?: DeviceState(),
-        wifiStatus = wifiStatus,
-        workStatus = workStatus,
-        alarm = alarm?.toModel() ?: AlarmInfo()
-    )
+    fun toModel(): CabinetDevice {
+        val alarmInfo = alarm?.toModel() ?: AlarmInfo()
+        // 根据 alarm bitmask 判断设备是否离线（WiFi故障bit12 或 MQTT故障bit13）
+        // 优先使用 alarm_code 判断，如果后端 isOnline 字段与 bitmask 矛盾，以 bitmask 为准
+        val effectiveIsOnline = !alarmInfo.isOffline
+        val effectiveLocation = location.takeIf { it.isNotBlank() } ?: "未知地址"
+        return CabinetDevice(
+            id = id,
+            name = name,
+            location = effectiveLocation,
+            x = x,
+            y = y,
+            isOnline = effectiveIsOnline,
+            currentData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L),
+            currentMode = if (alarmInfo.isAbnormal) WorkMode.ALARM else WorkMode.NORMAL,
+            deviceState = deviceState?.toModel() ?: DeviceState(),
+            alarm = alarmInfo
+        )
+    }
 }
 
 @Serializable
@@ -81,13 +85,17 @@ data class ApiAlarm(
 @Serializable
 data class ApiDeviceState(
     @SerialName("heatStatus") val heatStatus: Int = 0,
-    @SerialName("dehumidifyStatus") val dehumidifyStatus: Int = 0,
+    @SerialName("fanStatus") val fanStatus: Int = 0,
+    @SerialName("atomizerStatus") val atomizerStatus: Int = 0,
+    @SerialName("coolingStatus") val coolingStatus: Int = 0,
     @SerialName("buzzerStatus") val buzzerStatus: Int = 0
 ) {
     fun toModel(): DeviceState = DeviceState(
-        fan = if (dehumidifyStatus == 1) DeviceStatus.ON else DeviceStatus.OFF,
         heater = if (heatStatus == 1) DeviceStatus.ON else DeviceStatus.OFF,
-        dehumidifier = if (dehumidifyStatus == 1) DeviceStatus.ON else DeviceStatus.OFF
+        fan = if (fanStatus == 1) DeviceStatus.ON else DeviceStatus.OFF,
+        atomizer = if (atomizerStatus == 1) DeviceStatus.ON else DeviceStatus.OFF,
+        cooling = if (coolingStatus == 1) DeviceStatus.ON else DeviceStatus.OFF,
+        buzzer = if (buzzerStatus == 1) DeviceStatus.ON else DeviceStatus.OFF
     )
 }
 
@@ -96,40 +104,18 @@ data class ApiEnvironmentData(
     @SerialName("light_lx") val lightLx: Int = 0,
     @SerialName("temperature_c") val temperatureC: Float = 0f,
     @SerialName("humidity_percent") val humidityPercent: Float = 0f,
-    @SerialName("work_status") val workStatus: Int = 1,
-    @SerialName("heat_status") val heatStatus: Int = 0,
-    @SerialName("dehumidify_status") val dehumidifyStatus: Int = 0,
-    @SerialName("buzzer_status") val buzzerStatus: Int = 0,
-    @SerialName("wifi_status") val wifiStatus: Int = 1,
-    @SerialName("alarm_code") val alarmCode: Int = 0,
-    @SerialName("alarm_message") val alarmMessage: String = "normal",
     val timestamp: String = "",
     val weather: ApiWeather? = null
 ) {
     fun toModel(): EnvironmentData {
         val dewPoint = computeDewPoint(temperatureC, humidityPercent)
         val ts = parseTimestamp(timestamp)
-        // 按通信协议 work_status 判定：
-        //   0 = 停止, 1 = 正常工作, 2 = 异常
-        // 同时 wifi_status == 0 视为离线（alarmCode 11 = WiFi 故障）
-        val effectiveAlarmCode = when {
-            wifiStatus == 0 -> 11
-            workStatus == 2 -> 13
-            else -> alarmCode
-        }
-        val effectiveAlarmMessage = when {
-            wifiStatus == 0 -> "设备离线"
-            workStatus == 2 -> "设备工作异常"
-            else -> alarmMessage
-        }
         return EnvironmentData(
             temperature = temperatureC,
             humidity = humidityPercent,
             dewPoint = dewPoint,
             timestamp = ts,
-            lightLx = lightLx,
-            alarmCode = effectiveAlarmCode,
-            alarmMessage = effectiveAlarmMessage
+            lightLx = lightLx
         )
     }
 }
@@ -146,9 +132,54 @@ data class ApiWeather(
 }
 
 @Serializable
+data class ApiDeviceLatest(
+    val id: String = "",
+    @SerialName("isOnline") val isOnline: Boolean = true,
+    @SerialName("currentData") val currentData: ApiEnvironmentData? = null,
+    @SerialName("deviceState") val deviceState: ApiDeviceState? = null,
+    @SerialName("alarm") val alarm: ApiAlarm? = null,
+    val weather: ApiWeather? = null
+) {
+    fun toModel(): CabinetDevice {
+        val alarmInfo = alarm?.toModel() ?: AlarmInfo()
+        val effectiveIsOnline = !alarmInfo.isOffline
+        val envData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L)
+        val ds = deviceState?.toModel() ?: DeviceState()
+        return CabinetDevice(
+            id = id,
+            name = id,
+            location = "未知地址",
+            isOnline = effectiveIsOnline,
+            currentData = envData,
+            currentMode = if (alarmInfo.isAbnormal) WorkMode.ALARM else WorkMode.NORMAL,
+            deviceState = ds,
+            alarm = alarmInfo
+        )
+    }
+}
+
+@Serializable
+data class ApiHistoryEntry(
+    @SerialName("currentData") val currentData: ApiEnvironmentData? = null,
+    @SerialName("deviceState") val deviceState: ApiDeviceState? = null,
+    @SerialName("alarm") val alarm: ApiAlarm? = null
+) {
+    fun toModel(): EnvironmentData {
+        val envData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L)
+        val alarmInfo = alarm?.toModel() ?: AlarmInfo()
+        val ds = deviceState?.toModel() ?: DeviceState()
+        return envData.copy(
+            alarmCode = alarmInfo.code,
+            alarmMessage = alarmInfo.message,
+            deviceState = ds
+        )
+    }
+}
+
+@Serializable
 data class DeviceHistoryResponse(
     @SerialName("device_id") val deviceId: String? = null,
-    val history: List<ApiEnvironmentData> = emptyList(),
+    val history: List<ApiHistoryEntry> = emptyList(),
     val message: String? = null
 )
 

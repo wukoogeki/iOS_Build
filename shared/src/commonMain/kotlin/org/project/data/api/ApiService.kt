@@ -71,8 +71,8 @@ class ApiService private constructor() {
         }
     }
 
-    suspend fun getDeviceLatest(deviceId: String): Result<EnvironmentData> = runCatching {
-        val response: ApiEnvironmentData = client.get(
+    suspend fun getDeviceLatest(deviceId: String): Result<CabinetDevice> = runCatching {
+        val response: ApiDeviceLatest = client.get(
             "$baseUrl${ApiRoutes.DEVICE_LATEST.replace("{id}", deviceId)}"
         ).body()
         response.toModel()

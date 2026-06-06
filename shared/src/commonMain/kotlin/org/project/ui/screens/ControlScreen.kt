@@ -41,17 +41,6 @@ fun ControlScreen(viewModel: AppViewModel) {
 
         item {
             DeviceControlCard(
-                title = "风扇控制",
-                description = "用于通风散热，降低柜内温度",
-                currentStatus = state.deviceState.fan,
-                activeColor = Color(0xFF4CAF50),
-                onStatusChange = { viewModel.setDeviceStatus("fan", it) }
-            )
-            Spacer(Modifier.height(16.dp))
-        }
-
-        item {
-            DeviceControlCard(
                 title = "加热器控制",
                 description = "用于低温环境加热，防止凝露",
                 currentStatus = state.deviceState.heater,
@@ -63,11 +52,44 @@ fun ControlScreen(viewModel: AppViewModel) {
 
         item {
             DeviceControlCard(
-                title = "除湿器控制",
-                description = "用于高湿环境除湿，降低凝露风险",
-                currentStatus = state.deviceState.dehumidifier,
+                title = "风扇控制",
+                description = "用于通风散热，降低柜内温度",
+                currentStatus = state.deviceState.fan,
+                activeColor = Color(0xFF4CAF50),
+                onStatusChange = { viewModel.setDeviceStatus("fan", it) }
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        item {
+            DeviceControlCard(
+                title = "雾化器控制",
+                description = "用于天气模拟，产生雾化效果",
+                currentStatus = state.deviceState.atomizer,
                 activeColor = Color(0xFF2196F3),
-                onStatusChange = { viewModel.setDeviceStatus("dehumidifier", it) }
+                onStatusChange = { viewModel.setDeviceStatus("atomizer", it) }
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        item {
+            DeviceControlCard(
+                title = "制冷器控制",
+                description = "用于高温环境制冷降温",
+                currentStatus = state.deviceState.cooling,
+                activeColor = Color(0xFF9C27B0),
+                onStatusChange = { viewModel.setDeviceStatus("cooling", it) }
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        item {
+            DeviceControlCard(
+                title = "蜂鸣器控制",
+                description = "用于报警提示",
+                currentStatus = state.deviceState.buzzer,
+                activeColor = Color(0xFFF44336),
+                onStatusChange = { viewModel.setDeviceStatus("buzzer", it) }
             )
             Spacer(Modifier.height(32.dp))
         }

@@ -109,14 +109,27 @@ data class ApiEnvironmentData(
     fun toModel(): EnvironmentData {
         val dewPoint = computeDewPoint(temperatureC, humidityPercent)
         val ts = parseTimestamp(timestamp)
+        // 按通信协议 work_status 判定：
+        //   0 = 停止, 1 = 正常工作, 2 = 异常
+        // 同时 wifi_status == 0 视为离线（alarmCode 11 = WiFi 故障）
+        val effectiveAlarmCode = when {
+            wifiStatus == 0 -> 11
+            workStatus == 2 -> 13
+            else -> alarmCode
+        }
+        val effectiveAlarmMessage = when {
+            wifiStatus == 0 -> "设备离线"
+            workStatus == 2 -> "设备工作异常"
+            else -> alarmMessage
+        }
         return EnvironmentData(
             temperature = temperatureC,
             humidity = humidityPercent,
             dewPoint = dewPoint,
             timestamp = ts,
             lightLx = lightLx,
-            alarmCode = alarmCode,
-            alarmMessage = alarmMessage
+            alarmCode = effectiveAlarmCode,
+            alarmMessage = effectiveAlarmMessage
         )
     }
 }

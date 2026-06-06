@@ -91,9 +91,9 @@ fun DeviceScreen(
                     ) { showAbnormalOnly = !showAbnormalOnly }
                     .background(
                         when {
-                            isAbnormalPressed -> MiuixTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            showAbnormalOnly -> MiuixTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            else -> MiuixTheme.colorScheme.surface
+                            isAbnormalPressed -> MiuixTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            showAbnormalOnly -> MiuixTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            else -> MiuixTheme.colorScheme.onBackground.copy(alpha = 0.12f) // 灰色
                         },
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -145,6 +145,14 @@ private fun DeviceListItem(
         else -> Color(0xFF4CAF50)
     }
 
+    // 异常设备背景色：轻微的红色/橙色高亮
+    val abnormalBg = when {
+        !device.isOnline -> Color(0xFFFAFAFA)
+        device.alarm.severity == org.project.data.AlarmSeverity.CRITICAL -> Color(0xFFFFEBEE)
+        device.alarm.severity == org.project.data.AlarmSeverity.WARNING -> Color(0xFFFFF3E0)
+        else -> Color.Transparent
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -153,30 +161,37 @@ private fun DeviceListItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(abnormalBg)
                 .background(
                     if (isSelected) {
-                        MiuixTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        MiuixTheme.colorScheme.primary.copy(alpha = 0.15f)
                     } else {
                         Color.Transparent
                     }
                 )
-                .padding(16.dp),
+                .padding(vertical = 16.dp, horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
+                    .align(Alignment.CenterVertically)
                     .size(12.dp)
                     .background(statusColor, CircleShape)
             )
 
             Spacer(Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .align(Alignment.CenterVertically)
+            ) {
                 Text(
                     text = device.name,
                     style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onBackground
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = device.location,
                     style = MiuixTheme.textStyles.footnote1,
@@ -184,17 +199,45 @@ private fun DeviceListItem(
                 )
             }
 
-            if (!device.isOnline) {
-                Surface(
-                    color = Color(0xFFFFEBEE),
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        text = "离线",
-                        style = MiuixTheme.textStyles.footnote2,
-                        color = Color(0xFFF44336),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+            when {
+                !device.isOnline -> {
+                    Surface(
+                        color = Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "离线",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color(0xFFF44336),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                device.alarm.severity == org.project.data.AlarmSeverity.CRITICAL -> {
+                    Surface(
+                        color = Color(0xFFFFCDD2),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "严重",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color(0xFFB71C1C),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                device.alarm.severity == org.project.data.AlarmSeverity.WARNING -> {
+                    Surface(
+                        color = Color(0xFFFFE0B2),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "告警",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = Color(0xFFE65100),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }

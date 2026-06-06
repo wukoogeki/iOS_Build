@@ -26,6 +26,18 @@ class AppViewModel {
     var isTokenExpired by mutableStateOf(false)
         private set
 
+    // 异常告警弹窗：进入时为 null，正常时不弹；存在严重告警时填入严重设备数
+    var abnormalAlertCount by mutableStateOf(0)
+        private set
+    var abnormalAlertVisible by mutableStateOf(false)
+        private set
+    // 超过 10 秒未处理时为 true，App 端用于切换淡红色背景/声音/震动
+    var abnormalAlertUrgent by mutableStateOf(false)
+        private set
+
+    private var abnormalAlertJob: Job? = null
+    private var previousCriticalCount: Int = 0
+
     private fun Throwable.toUserMessage(): String {
         val msg = message ?: "未知错误"
         return when {
@@ -116,12 +128,52 @@ class AppViewModel {
                     devices.firstOrNull()?.let { device ->
                         selectDevice(device)
                     }
+                    // 检测严重告警变化
+                    checkAbnormalAlert(devices)
                 }
                 .onFailure {
                     handleError(it)
                 }
             isLoading = false
         }
+    }
+
+    /**
+     * 检测严重告警数量变化：
+     * - 新增严重告警时弹出弹窗
+     * - 10 秒内未点击，则标记为紧急（用于背景变红/声音/震动）
+     * - 用户点击或严重告警减少时清空
+     */
+    private fun checkAbnormalAlert(devices: List<CabinetDevice>) {
+        val critical = devices.count {
+            it.isOnline && it.alarm.severity == AlarmSeverity.CRITICAL
+        }
+
+        if (critical > previousCriticalCount && critical > 0) {
+            // 出现新的严重告警
+            abnormalAlertCount = critical
+            abnormalAlertVisible = true
+            abnormalAlertUrgent = false
+            abnormalAlertJob?.cancel()
+            abnormalAlertJob = scope.launch {
+                delay(10_000)
+                if (abnormalAlertVisible) {
+                    abnormalAlertUrgent = true
+                }
+            }
+        } else if (critical == 0 && abnormalAlertVisible) {
+            // 严重告警已处理
+            dismissAbnormalAlert()
+        }
+        previousCriticalCount = critical
+    }
+
+    fun dismissAbnormalAlert() {
+        abnormalAlertVisible = false
+        abnormalAlertUrgent = false
+        abnormalAlertCount = 0
+        abnormalAlertJob?.cancel()
+        abnormalAlertJob = null
     }
 
     private fun loadDeviceData(deviceId: String) {

@@ -1,5 +1,8 @@
 package org.project.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -142,7 +145,9 @@ private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>, on
             Text(
                 text = "设备总览",
                 style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             Spacer(Modifier.height(12.dp))
             Row(
@@ -194,7 +199,10 @@ private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>, on
 
 @Composable
 private fun OverviewItem(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier = Modifier.widthIn(min = 72.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             text = value,
             style = MiuixTheme.textStyles.title1,
@@ -204,7 +212,8 @@ private fun OverviewItem(label: String, value: String, color: Color) {
         Text(
             text = label,
             style = MiuixTheme.textStyles.footnote2,
-            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
@@ -276,15 +285,22 @@ private fun SelectedDeviceCard(device: org.project.data.CabinetDevice) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .heightIn(min = 64.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = device.name,
                     style = MiuixTheme.textStyles.title3,
                     color = MiuixTheme.colorScheme.onBackground
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = device.location,
                     style = MiuixTheme.textStyles.body2,
@@ -351,33 +367,13 @@ private fun EnvironmentDataCard(data: EnvironmentData) {
                     color = Color(0xFF2196F3)
                 )
                 CircularGauge(
-                    value = data.dewPoint,
+                    value = data.lightLx.toFloat(),
                     minValue = 0f,
-                    maxValue = 30f,
-                    label = "露点",
-                    unit = "°C",
-                    color = Color(0xFF9C27B0)
+                    maxValue = 1000f,
+                    label = "光照",
+                    unit = "lx",
+                    color = Color(0xFFFFEB3B)
                 )
-            }
-
-            if (data.lightLx > 0) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "光照强度",
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        text = "${data.lightLx} lx",
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.onBackground
-                    )
-                }
             }
 
             if (data.alarmCode != 0) {
@@ -408,7 +404,11 @@ private fun CircularGauge(
     unit: String,
     color: Color
 ) {
-    val progress = ((value - minValue) / (maxValue - minValue)).coerceIn(0f, 1f)
+    val targetProgress = ((value - minValue) / (maxValue - minValue)).coerceIn(0f, 1f)
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+    )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
@@ -436,7 +436,7 @@ private fun CircularGauge(
                 drawArc(
                     color = color,
                     startAngle = 135f,
-                    sweepAngle = 270f * progress,
+                    sweepAngle = 270f * animatedProgress,
                     useCenter = false,
                     topLeft = topLeft,
                     size = Size(diameter, diameter),

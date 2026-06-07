@@ -6,8 +6,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,12 +19,21 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.Padding
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toLocalDateTime
 import org.project.data.AlarmCodeTable
 import org.project.data.AlarmSeverity
 import org.project.data.DeviceStatus
 import org.project.data.EnvironmentData
 import org.project.data.WorkMode
+import org.project.ui.components.PullToRefresh
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -40,55 +51,68 @@ fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    val listState = rememberLazyListState()
+
+    // 主内容区：包一层 PullToRefresh，向上滑到顶继续下拉触发刷新
+    PullToRefresh(
+        refreshing = viewModel.isRefreshing,
+        onRefresh = { viewModel.refreshAll() },
+        // 空选设备时仅禁用下拉刷新
+        enableRefresh = selectedDevice != null,
+        enableBounce = false,
+        modifier = Modifier.fillMaxSize()
     ) {
-        Spacer(Modifier.height(16.dp))
-        DeviceOverviewCard(state.devices, onClick = onNavigateToDevices)
-        Spacer(Modifier.height(16.dp))
-
-        if (selectedDevice == null) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "请先选择设备",
-                        style = MiuixTheme.textStyles.title2,
-                        color = MiuixTheme.colorScheme.onBackground
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "点击底部导航栏「设备」选择要查看的环网柜",
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onBackground
-                    )
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            return@Column
-        }
-
         LazyColumn(
+            state = listState,
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            item {
+                Spacer(Modifier.height(16.dp))
+
+                // 设备总览：普通卡片，随列表滚动
+                DeviceOverviewCard(state.devices, onClick = onNavigateToDevices)
+                Spacer(Modifier.height(16.dp))
+            }
+
+            if (selectedDevice == null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "请先选择设备",
+                                style = MiuixTheme.textStyles.title2,
+                                color = MiuixTheme.colorScheme.onBackground
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = "点击底部导航栏「设备」选择要查看的环网柜",
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+                return@LazyColumn
+            }
+
             item {
                 SelectedDeviceCard(selectedDevice)
                 Spacer(Modifier.height(16.dp))
                 WorkModeCard(state.currentMode, selectedDevice.isOnline == false)
+                Spacer(Modifier.height(16.dp))
+                AlarmCodeCard(alarmCode = state.currentData.alarmCode)
                 Spacer(Modifier.height(16.dp))
             }
 
@@ -98,7 +122,8 @@ fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {
             }
 
             item {
-                HistoryChartCard(state.historyData)
+                // 历史数据反转：最新数据放最右边
+                HistoryChartCard(state.historyData.reversed())
                 Spacer(Modifier.height(16.dp))
             }
 
@@ -554,133 +579,191 @@ private fun HistoryChartCard(historyData: List<EnvironmentData>) {
 
 @Composable
 private fun LineChart(data: List<EnvironmentData>) {
-    val temperatures = data.map { it.temperature }
-    val humidities = data.map { it.humidity }
-
     Column {
-        Text(
-            text = "温度 (°C)",
-            style = MiuixTheme.textStyles.footnote2,
-            color = Color(0xFFFF9800)
-        )
-        Spacer(Modifier.height(4.dp))
-        SimpleLineChart(
-            values = temperatures,
+        InteractiveLineChart(
+            data = data,
+            valueSelector = { it.temperature },
             color = Color(0xFFFF9800),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
+            label = "温度",
+            unit = "°C"
         )
-
         Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = "湿度 (%)",
-            style = MiuixTheme.textStyles.footnote2,
-            color = Color(0xFF2196F3)
-        )
-        Spacer(Modifier.height(4.dp))
-        SimpleLineChart(
-            values = humidities,
+        InteractiveLineChart(
+            data = data,
+            valueSelector = { it.humidity },
             color = Color(0xFF2196F3),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
+            label = "湿度",
+            unit = "%"
         )
     }
 }
 
+/**
+ * 可点击的折线图：点击某点弹出该点的时间戳 + 数值详情。
+ *
+ * @param data 原始数据点（提供 timestamp / 温度/湿度 等）
+ * @param valueSelector 取值函数（温度 or 湿度）
+ */
 @Composable
-private fun SimpleLineChart(
-    values: List<Float>,
+private fun InteractiveLineChart(
+    data: List<EnvironmentData>,
+    valueSelector: (EnvironmentData) -> Float,
     color: Color,
+    label: String,
+    unit: String,
     modifier: Modifier = Modifier
 ) {
+    val values = data.map(valueSelector)
     val maxValue = values.maxOrNull() ?: 1f
     val minValue = values.minOrNull() ?: 0f
-    val range = maxValue - minValue
+    val range = (maxValue - minValue).coerceAtLeast(0.0001f)
 
-    Row(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .width(40.dp)
-                .fillMaxHeight(),
-            verticalArrangement = Arrangement.SpaceBetween
+    // 当前被选中的数据点索引；null 表示未选
+    var selectedIndex by remember(data) { mutableStateOf<Int?>(null) }
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = maxValue.format(1),
+                text = "$label ($unit)",
                 style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.secondary
+                color = color,
+                modifier = Modifier.weight(1f)
             )
-            Text(
-                text = ((maxValue + minValue) / 2).format(1),
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.secondary
-            )
-            Text(
-                text = minValue.format(1),
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.secondary
-            )
-        }
-
-        Canvas(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        ) {
-            if (values.size < 2) return@Canvas
-
-            val stepX = size.width / (values.size - 1)
-            val padding = 4.dp.toPx()
-            val chartHeight = size.height - 2 * padding
-
-            val points = values.mapIndexed { index, value ->
-                val normalized = if (range > 0) {
-                    1f - ((value - minValue) / range).coerceIn(0f, 1f)
-                } else {
-                    0.5f
+            // 选中时显示：时间 · 数值
+            selectedIndex?.let { idx ->
+                val point = data.getOrNull(idx)
+                if (point != null) {
+                    Text(
+                        text = "${formatTimestamp(point.timestamp)}  ·  ${valueSelector(point).format(1)}$unit",
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                    )
                 }
-                Offset(
-                    x = index * stepX,
-                    y = padding + normalized * chartHeight
-                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+
+        Row(modifier = Modifier.fillMaxWidth().height(72.dp)) {
+            // Y 轴标签
+            Column(
+                modifier = Modifier
+                    .width(40.dp)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(maxValue.format(1), style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.secondary)
+                Text(((maxValue + minValue) / 2).format(1), style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.secondary)
+                Text(minValue.format(1), style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.secondary)
             }
 
-            for (i in 0..4) {
-                val y = padding + (chartHeight * i / 4)
-                drawLine(
-                    color = Color.Gray.copy(alpha = 0.2f),
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = 1f
-                )
-            }
+            // 画布 + 点击
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .pointerInput(data) {
+                        detectTapGestures(
+                            onTap = { offset: Offset ->
+                                if (values.size < 2) return@detectTapGestures
+                                val stepX = size.width / (values.size - 1).toFloat()
+                                val rawIdx = (offset.x / stepX).toInt()
+                                    .coerceIn(0, values.size - 1)
+                                // 选最近点：和左右两点的距离取更近者
+                                val nearest = if (rawIdx < values.size - 1) {
+                                    val distLeft = offset.x - rawIdx * stepX
+                                    val distRight = (rawIdx + 1) * stepX - offset.x
+                                    if (distRight < distLeft) rawIdx + 1 else rawIdx
+                                } else rawIdx
+                                selectedIndex = nearest
+                            }
+                        )
+                    }
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    if (values.size < 2) return@Canvas
 
-            for (i in 0 until points.size - 1) {
-                drawLine(
-                    color = color,
-                    start = points[i],
-                    end = points[i + 1],
-                    strokeWidth = 2.5f,
-                    cap = StrokeCap.Round
-                )
-            }
+                    val stepX = size.width / (values.size - 1)
+                    val padding = 4.dp.toPx()
+                    val chartHeight = size.height - 2 * padding
 
-            points.forEach { point ->
-                drawCircle(
-                    color = color,
-                    radius = 3f,
-                    center = point
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = 1.5f,
-                    center = point
-                )
+                    // 网格
+                    for (i in 0..4) {
+                        val y = padding + (chartHeight * i / 4)
+                        drawLine(
+                            color = Color.Gray.copy(alpha = 0.2f),
+                            start = Offset(0f, y),
+                            end = Offset(size.width, y),
+                            strokeWidth = 1f
+                        )
+                    }
+
+                    val points = values.mapIndexed { index, value ->
+                        val normalized = if (range > 0) {
+                            1f - ((value - minValue) / range).coerceIn(0f, 1f)
+                        } else 0.5f
+                        Offset(x = index * stepX, y = padding + normalized * chartHeight)
+                    }
+
+                    // 折线
+                    for (i in 0 until points.size - 1) {
+                        drawLine(
+                            color = color,
+                            start = points[i],
+                            end = points[i + 1],
+                            strokeWidth = 2.5f,
+                            cap = StrokeCap.Round
+                        )
+                    }
+
+                    // 折点
+                    points.forEach { p ->
+                        drawCircle(color = color, radius = 3f, center = p)
+                        drawCircle(color = Color.White, radius = 1.5f, center = p)
+                    }
+
+                    // 选中的高亮：垂直虚线 + 大点
+                    selectedIndex?.let { idx ->
+                        val p = points.getOrNull(idx) ?: return@let
+                        // 垂直参考线
+                        drawLine(
+                            color = color.copy(alpha = 0.6f),
+                            start = Offset(p.x, padding),
+                            end = Offset(p.x, size.height - padding),
+                            strokeWidth = 1.5f
+                        )
+                        // 高亮点
+                        drawCircle(color = color.copy(alpha = 0.25f), radius = 10f, center = p)
+                        drawCircle(color = color, radius = 5f, center = p)
+                        drawCircle(color = Color.White, radius = 2.5f, center = p)
+                    }
+                }
             }
         }
     }
+}
+
+// 缓存本地时区 + 格式（构造一次复用）
+private val localZone: TimeZone = TimeZone.currentSystemDefault()
+
+private val tsFormat: kotlinx.datetime.format.DateTimeFormat<LocalDateTime> =
+    LocalDateTime.Format {
+        monthNumber(padding = Padding.ZERO)
+        char('-')
+        dayOfMonth(padding = Padding.ZERO)
+        char(' ')
+        hour(padding = Padding.ZERO)
+        char(':')
+        minute(padding = Padding.ZERO)
+    }
+
+/** 把 Long(ms) 时间戳格式化为 MM-dd HH:mm（使用 kotlinx-datetime，自动处理时区与月日） */
+private fun formatTimestamp(ts: Long): String {
+    if (ts <= 0L) return "--:--"
+    val ldt = Instant.fromEpochMilliseconds(ts).toLocalDateTime(localZone)
+    return ldt.format(tsFormat)
 }
 
 @Composable
@@ -825,5 +908,112 @@ private fun DeviceControlRow(
                 Spacer(Modifier.width(8.dp))
             }
         }
+    }
+}
+
+/**
+ * 告警代码含义卡片：显示当前设备所有触发的告警码及其含义。
+ * 右上角有折叠按钮，可展开/收起详细列表。
+ */
+@Composable
+private fun AlarmCodeCard(alarmCode: Int) {
+    var expanded by remember { mutableStateOf(true) }
+    val alarms = remember(alarmCode) { AlarmCodeTable.parseFromBitmask(alarmCode) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "告警详情",
+                    style = MiuixTheme.textStyles.title3
+                )
+                // 折叠/展开按钮
+                Text(
+                    text = if (expanded) "收起" else "展开",
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { expanded = !expanded }
+                )
+            }
+
+            if (alarms.isEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "当前无告警",
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.secondary
+                )
+            } else {
+                Spacer(Modifier.height(12.dp))
+                if (expanded) {
+                    alarms.forEach { alarm ->
+                        AlarmCodeRow(alarm)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                } else {
+                    // 收起时只显示最严重的一条 + 数量
+                    val criticalCount = alarms.count { it.severity == AlarmSeverity.CRITICAL }
+                    val warningCount = alarms.count { it.severity == AlarmSeverity.WARNING }
+                    val summary = buildString {
+                        if (criticalCount > 0) append("${criticalCount}项严重")
+                        if (warningCount > 0) {
+                            if (isNotEmpty()) append("，")
+                            append("${warningCount}项一般")
+                        }
+                    }
+                    Text(
+                        text = summary,
+                        style = MiuixTheme.textStyles.body2,
+                        color = if (criticalCount > 0) Color(0xFFC62828) else Color(0xFFFFA726)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlarmCodeRow(alarm: org.project.data.AlarmCodeInfo) {
+    val color = when (alarm.severity) {
+        AlarmSeverity.CRITICAL -> Color(0xFFC62828)
+        AlarmSeverity.WARNING -> Color(0xFFFFA726)
+        else -> MiuixTheme.colorScheme.secondary
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        //  severity 指示点
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, androidx.compose.foundation.shape.CircleShape)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = alarm.meaning,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onBackground
+            )
+            Text(
+                text = alarm.category,
+                style = MiuixTheme.textStyles.footnote2,
+                color = MiuixTheme.colorScheme.secondary
+            )
+        }
+        Text(
+            text = when (alarm.severity) {
+                AlarmSeverity.CRITICAL -> "严重"
+                AlarmSeverity.WARNING -> "一般"
+                else -> "正常"
+            },
+            style = MiuixTheme.textStyles.footnote2,
+            color = color
+        )
     }
 }

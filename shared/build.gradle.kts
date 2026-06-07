@@ -52,8 +52,7 @@ kotlin {
                 exclude(group = "androidx.compose.material3", module = "material3-window-size-class")
             }
             implementation(libs.miuix.icons)
-            implementation(libs.miuix.blur)
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+            implementation(libs.kotlinx.datetime)
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)

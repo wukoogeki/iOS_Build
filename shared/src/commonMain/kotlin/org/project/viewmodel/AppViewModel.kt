@@ -20,6 +20,9 @@ class AppViewModel {
     var isLoading by mutableStateOf(false)
         private set
 
+    var isRefreshing by mutableStateOf(false)
+        private set
+
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
@@ -281,6 +284,45 @@ class AppViewModel {
         state.selectedDevice?.let { device ->
             loadDeviceData(device.id)
             loadDeviceHistory(device.id)
+        }
+    }
+
+    /**
+     * 用户下拉松手触发的刷新：
+     * - 设备列表 + 当前设备的最新数据 + 历史数据 一起拉取
+     * - 设置 isRefreshing 让 PullToRefresh 指示器有结束时机
+     */
+    fun refreshAll() {
+        if (isRefreshing) return
+        scope.launch {
+            isRefreshing = true
+            // 设备列表（内部会触发 selectDevice -> loadDeviceData + loadDeviceHistory）
+            repository.getDevices()
+                .onSuccess { devices ->
+                    val currentId = state.selectedDevice?.id
+                    val stillExists = currentId != null && devices.any { it.id == currentId }
+                    val target = if (stillExists) {
+                        state.selectedDevice
+                    } else {
+                        devices.firstOrNull()
+                    }
+                    state = state.copy(
+                        devices = devices,
+                        selectedDevice = target
+                    )
+                    // 主动拉一次当前设备的最新数据 + 历史（保证下拉后看到新数据）
+                    target?.let { device ->
+                        launch { loadDeviceData(device.id) }
+                        launch { loadDeviceHistory(device.id) }
+                    }
+                    checkAbnormalAlert(devices)
+                }
+                .onFailure {
+                    handleError(it)
+                }
+            // 给予下拉指示器最短可见时间，避免一闪而过
+            kotlinx.coroutines.delay(600)
+            isRefreshing = false
         }
     }
 

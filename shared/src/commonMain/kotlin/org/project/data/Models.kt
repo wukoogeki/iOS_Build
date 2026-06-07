@@ -49,19 +49,22 @@ data class AlarmCodeInfo(
 )
 
 /**
- * 告警码定义表 (0-16位bitmask)
+ * 告警码定义表 (0-16位bitmask)，依据 alarm_code表与说明.md
  * 位0: 正常
  * 位1-3: 环境异常 (warning)
- * 位4-6: 传感器故障 (4/5 critical, 6 warning)
- * 位7-8: 执行机构故障 (critical)
- * 位9: 制冷模块故障 (critical)
- * 位10: 天气模拟故障 (warning)
- * 位11: 蜂鸣器故障 (warning)
- * 位12: WiFi故障 (warning) -> 设备离线
- * 位13: MQTT故障 (critical) -> 设备离线
- * 位14: 主控故障 (critical)
- * 位15: 电源故障 (critical)
- * 位16: OLED故障 (warning)
+ * 位4: 温湿度传感器故障 (critical) — 原4/5合并
+ * 位5: 光照传感器故障 (warning)
+ * 位6: 风扇故障 (critical)
+ * 位7: 加热片故障 (critical)
+ * 位8: 制冷模块故障 (critical)
+ * 位9: 雾化器故障 (warning)
+ * 位10: 蜂鸣器故障 (warning)
+ * 位11: WiFi故障 (warning) — 忽略（通信层，不显示在告警卡片）
+ * 位12: MQTT故障 (critical) — 忽略（通信层，不显示在告警卡片）
+ * 位13: 主控异常 (critical)
+ * 位14: 电源异常 (critical)
+ * 位15: OLED故障 (warning)
+ * 位16: 从控故障 (critical)
  */
 object AlarmCodeTable {
     private val table = mapOf(
@@ -69,41 +72,41 @@ object AlarmCodeTable {
         1 to AlarmCodeInfo(1, "环境异常", "温度异常", AlarmSeverity.WARNING),
         2 to AlarmCodeInfo(2, "环境异常", "湿度异常", AlarmSeverity.WARNING),
         3 to AlarmCodeInfo(3, "环境异常", "光照异常", AlarmSeverity.WARNING),
-        4 to AlarmCodeInfo(4, "传感器故障", "温度传感器故障", AlarmSeverity.CRITICAL),
-        5 to AlarmCodeInfo(5, "传感器故障", "湿度传感器故障", AlarmSeverity.CRITICAL),
-        6 to AlarmCodeInfo(6, "传感器故障", "光照传感器故障", AlarmSeverity.WARNING),
-        7 to AlarmCodeInfo(7, "执行机构故障", "风扇故障", AlarmSeverity.CRITICAL),
-        8 to AlarmCodeInfo(8, "执行机构故障", "加热片故障", AlarmSeverity.CRITICAL),
-        9 to AlarmCodeInfo(9, "执行机构故障", "制冷模块故障", AlarmSeverity.CRITICAL),
-        10 to AlarmCodeInfo(10, "天气模拟故障", "雾化器故障", AlarmSeverity.WARNING),
-        11 to AlarmCodeInfo(11, "执行机构故障", "蜂鸣器故障", AlarmSeverity.WARNING),
-        12 to AlarmCodeInfo(12, "通信故障", "WiFi故障", AlarmSeverity.WARNING),
-        13 to AlarmCodeInfo(13, "通信故障", "MQTT故障", AlarmSeverity.CRITICAL),
-        14 to AlarmCodeInfo(14, "主控故障", "主控异常", AlarmSeverity.CRITICAL),
-        15 to AlarmCodeInfo(15, "电源故障", "电源异常", AlarmSeverity.CRITICAL),
-        16 to AlarmCodeInfo(16, "显示故障", "OLED故障", AlarmSeverity.WARNING)
+        4 to AlarmCodeInfo(4, "传感器故障", "温湿度传感器故障", AlarmSeverity.CRITICAL),
+        5 to AlarmCodeInfo(5, "传感器故障", "光照传感器故障", AlarmSeverity.WARNING),
+        6 to AlarmCodeInfo(6, "执行机构故障", "风扇故障", AlarmSeverity.CRITICAL),
+        7 to AlarmCodeInfo(7, "执行机构故障", "加热片故障", AlarmSeverity.CRITICAL),
+        8 to AlarmCodeInfo(8, "执行机构故障", "制冷模块故障", AlarmSeverity.CRITICAL),
+        9 to AlarmCodeInfo(9, "天气模拟故障", "雾化器故障", AlarmSeverity.WARNING),
+        10 to AlarmCodeInfo(10, "执行机构故障", "蜂鸣器故障", AlarmSeverity.WARNING),
+        // 位11、12 为通信故障（WiFi/MQTT），不在告警卡片中显示
+        13 to AlarmCodeInfo(13, "主控故障", "主控异常", AlarmSeverity.CRITICAL),
+        14 to AlarmCodeInfo(14, "电源故障", "电源异常", AlarmSeverity.CRITICAL),
+        15 to AlarmCodeInfo(15, "显示故障", "OLED故障", AlarmSeverity.WARNING),
+        16 to AlarmCodeInfo(16, "通信故障", "从控故障", AlarmSeverity.CRITICAL)
     )
+
+    /** 所有需要在 UI 告警卡片中显示的告警码（排除 11、12） */
+    val displayCodes: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 16)
 
     fun getInfo(code: Int): AlarmCodeInfo = table[code] ?: AlarmCodeInfo(code, "未知", "未知故障", AlarmSeverity.WARNING)
 
     /**
-     * 从 bitmask 解析所有告警码
-     * 注意：bitmask 中位0表示正常，如果只有位0被设置则返回空列表
+     * 从 bitmask 解析所有告警码（排除 11、12）
      */
     fun parseFromBitmask(bitmask: Int): List<AlarmCodeInfo> {
         if (bitmask == 0) return emptyList()
         val codes = mutableListOf<AlarmCodeInfo>()
-        for (bit in 1..16) {
+        for (bit in displayCodes) {
             if ((bitmask and (1 shl bit)) != 0) {
                 codes.add(getInfo(bit))
             }
         }
-        // 如果没有任何位被设置（只有位0），返回空列表
-        return codes.ifEmpty { emptyList() }
+        return codes
     }
 
     /**
-     * 获取 bitmask 中最严重的级别
+     * 获取 bitmask 中最严重的级别（排除 11、12）
      */
     fun getMaxSeverity(bitmask: Int): AlarmSeverity {
         val codes = parseFromBitmask(bitmask)
@@ -116,14 +119,14 @@ object AlarmCodeTable {
     }
 
     /**
-     * 判断设备是否离线（WiFi故障 或 MQTT故障）
+     * 判断设备是否离线（WiFi故障 或 MQTT故障）— 包含 11、12
      */
     fun isOffline(bitmask: Int): Boolean {
-        return (bitmask and (1 shl 12)) != 0 || (bitmask and (1 shl 13)) != 0
+        return (bitmask and (1 shl 11)) != 0 || (bitmask and (1 shl 12)) != 0
     }
 
     /**
-     * 判断是否有任何异常（非正常的告警码）
+     * 判断是否有任何异常（排除 11、12）
      */
     fun hasAnyAlarm(bitmask: Int): Boolean {
         return parseFromBitmask(bitmask).isNotEmpty()

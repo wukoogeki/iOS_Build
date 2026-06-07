@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.data.CabinetDevice
 import org.project.data.WorkMode
+import org.project.ui.components.PullToRefresh
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -113,17 +114,24 @@ fun DeviceScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        LazyColumn {
-            items(filteredDevices) { device ->
-                DeviceListItem(
-                    device = device,
-                    isSelected = state.selectedDevice?.id == device.id,
-                    onClick = {
-                        viewModel.selectDevice(device)
-                        onDeviceSelected(device)
-                    }
-                )
-                Spacer(Modifier.height(8.dp))
+        // 设备列表：支持下拉刷新
+        PullToRefresh(
+            refreshing = viewModel.isRefreshing,
+            onRefresh = { viewModel.refreshAll() },
+            modifier = Modifier.weight(1f)
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(filteredDevices) { device ->
+                    DeviceListItem(
+                        device = device,
+                        isSelected = state.selectedDevice?.id == device.id,
+                        onClick = {
+                            viewModel.selectDevice(device)
+                            onDeviceSelected(device)
+                        }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
             }
         }
     }

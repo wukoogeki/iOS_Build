@@ -142,6 +142,7 @@ private fun DeviceListItem(
         device.currentMode == WorkMode.HEAT -> Color(0xFFFF9800)
         device.currentMode == WorkMode.VENTILATE -> Color(0xFF9C27B0)
         device.currentMode == WorkMode.ALARM -> Color(0xFFF44336)
+        device.currentMode == WorkMode.OFFLINE -> Color(0xFF9E9E9E)
         else -> Color(0xFF4CAF50)
     }
 

@@ -4,4 +4,27 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    pointer-events: auto;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Fix for Chrome WasmJs: miuix TextField uses Skia Canvas which Chrome
+   does not forward pointer events to by default. Force pointer events
+   on the Compose root, canvas, and form elements. */
+body > *, canvas, input, textarea, button, [contenteditable] {
+    pointer-events: auto !important;
+    -webkit-user-select: auto;
+    user-select: auto;
+}
+
+/* Ensure the Compose root container receives events */
+#root, #app, .compose-root {
+    pointer-events: auto !important;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }

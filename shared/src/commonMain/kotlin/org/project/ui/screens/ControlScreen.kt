@@ -202,5 +202,6 @@ private fun getModeText(mode: org.project.data.WorkMode): String {
         org.project.data.WorkMode.HEAT -> "加热模式"
         org.project.data.WorkMode.VENTILATE -> "通风模式"
         org.project.data.WorkMode.ALARM -> "凝露警报"
+        org.project.data.WorkMode.OFFLINE -> "设备离线"
     }
 }

@@ -36,6 +36,7 @@ fun App() {
     LaunchedEffect(Unit) {
         if (viewModel.state.isLoggedIn) {
             currentScreen = Screen.Dashboard
+            viewModel.loadDevices()  // 自动登录进入仪表盘时立即刷新设备总览
         }
     }
 
@@ -79,8 +80,7 @@ fun App() {
                                 viewModel.loadDevices()
                             }
                             currentScreen = screen
-                        },
-                        themeMode = themeMode
+                        }
                     )
                 }
             }

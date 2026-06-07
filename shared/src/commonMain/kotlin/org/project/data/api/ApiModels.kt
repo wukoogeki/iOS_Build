@@ -52,9 +52,8 @@ data class ApiCabinetDevice(
 ) {
     fun toModel(): CabinetDevice {
         val alarmInfo = alarm?.toModel() ?: AlarmInfo()
-        // 根据 alarm bitmask 判断设备是否离线（WiFi故障bit12 或 MQTT故障bit13）
-        // 优先使用 alarm_code 判断，如果后端 isOnline 字段与 bitmask 矛盾，以 bitmask 为准
-        val effectiveIsOnline = !alarmInfo.isOffline
+        // 是否离线只由后端 isOnline 字段判断，不再用 alarm bitmask 覆盖
+        val effectiveIsOnline = isOnline
         val effectiveLocation = location.takeIf { it.isNotBlank() } ?: "未知地址"
         return CabinetDevice(
             id = id,
@@ -64,7 +63,9 @@ data class ApiCabinetDevice(
             y = y,
             isOnline = effectiveIsOnline,
             currentData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L),
-            currentMode = if (alarmInfo.isAbnormal) WorkMode.ALARM else WorkMode.NORMAL,
+            currentMode = if (!effectiveIsOnline) WorkMode.OFFLINE
+                          else if (alarmInfo.isAbnormal) WorkMode.ALARM
+                          else WorkMode.NORMAL,
             deviceState = deviceState?.toModel() ?: DeviceState(),
             alarm = alarmInfo
         )
@@ -142,7 +143,7 @@ data class ApiDeviceLatest(
 ) {
     fun toModel(): CabinetDevice {
         val alarmInfo = alarm?.toModel() ?: AlarmInfo()
-        val effectiveIsOnline = !alarmInfo.isOffline
+        val effectiveIsOnline = isOnline
         val envData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L)
         val ds = deviceState?.toModel() ?: DeviceState()
         return CabinetDevice(
@@ -151,7 +152,9 @@ data class ApiDeviceLatest(
             location = "未知地址",
             isOnline = effectiveIsOnline,
             currentData = envData,
-            currentMode = if (alarmInfo.isAbnormal) WorkMode.ALARM else WorkMode.NORMAL,
+            currentMode = if (!effectiveIsOnline) WorkMode.OFFLINE
+                          else if (alarmInfo.isAbnormal) WorkMode.ALARM
+                          else WorkMode.NORMAL,
             deviceState = ds,
             alarm = alarmInfo
         )

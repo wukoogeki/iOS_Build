@@ -5,7 +5,8 @@ enum class WorkMode {
     DEHUMIDIFY,
     HEAT,
     VENTILATE,
-    ALARM
+    ALARM,
+    OFFLINE
 }
 
 enum class DeviceStatus {

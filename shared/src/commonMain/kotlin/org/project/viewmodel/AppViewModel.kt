@@ -121,13 +121,19 @@ class AppViewModel {
             errorMessage = null
             repository.getDevices()
                 .onSuccess { devices ->
+                    // 保留用户已选设备：仅在没选过 / 选过的设备已下线/被删时才回退到第一个
+                    val currentId = state.selectedDevice?.id
+                    val stillExists = currentId != null && devices.any { it.id == currentId }
+                    val target = if (stillExists) {
+                        state.selectedDevice
+                    } else {
+                        devices.firstOrNull()
+                    }
                     state = state.copy(
                         devices = devices,
-                        selectedDevice = devices.firstOrNull()
+                        selectedDevice = target
                     )
-                    devices.firstOrNull()?.let { device ->
-                        selectDevice(device)
-                    }
+                    target?.let { device -> selectDevice(device) }
                     // 检测严重告警变化
                     checkAbnormalAlert(devices)
                 }
@@ -180,9 +186,12 @@ class AppViewModel {
         scope.launch {
             repository.getDeviceLatest(deviceId)
                 .onSuccess { device ->
+                    // 离线设备不根据 stale 0/0 温度推导工作模式
+                    val mode = if (!device.isOnline) WorkMode.OFFLINE
+                               else determineWorkMode(device.currentData)
                     state = state.copy(
                         currentData = device.currentData,
-                        currentMode = determineWorkMode(device.currentData),
+                        currentMode = mode,
                         deviceState = device.deviceState
                     )
                 }

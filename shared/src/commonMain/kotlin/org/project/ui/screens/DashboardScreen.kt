@@ -154,70 +154,86 @@ private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>, on
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             Spacer(Modifier.height(12.dp))
+
+            // Row 1: 设备总数 / 正常运行 / 异常设备（始终显示）
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 OverviewItem(
                     label = "设备总数",
                     value = total.toString(),
-                    color = MiuixTheme.colorScheme.primary
+                    color = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
                 )
                 OverviewItem(
                     label = "正常运行",
                     value = normal.toString(),
-                    color = Color(0xFF2E7D32)
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.weight(1f)
                 )
                 OverviewItem(
                     label = "异常设备",
                     value = abnormal.toString(),
-                    color = if (abnormal > 0) Color(0xFFC62828) else Color(0xFF9E9E9E)
+                    color = if (abnormal > 0) Color(0xFFC62828) else Color(0xFF9E9E9E),
+                    modifier = Modifier.weight(1f)
                 )
             }
-            if (abnormal > 0) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    OverviewItem(
-                        label = "离线",
-                        value = offline.toString(),
-                        color = Color(0xFF9E9E9E)
-                    )
-                    OverviewItem(
-                        label = "一般告警",
-                        value = warning.toString(),
-                        color = Color(0xFFFFA726)
-                    )
-                    OverviewItem(
-                        label = "严重告警",
-                        value = critical.toString(),
-                        color = Color(0xFFC62828)
-                    )
-                }
+
+            // Row 2: 离线 / 一般告警 / 严重告警（始终显示，便于一眼看到分布）
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                OverviewItem(
+                    label = "离线",
+                    value = offline.toString(),
+                    color = if (offline > 0) Color(0xFF616161) else Color(0xFF9E9E9E),
+                    modifier = Modifier.weight(1f)
+                )
+                OverviewItem(
+                    label = "一般告警",
+                    value = warning.toString(),
+                    color = if (warning > 0) Color(0xFFFFA726) else Color(0xFF9E9E9E),
+                    modifier = Modifier.weight(1f)
+                )
+                OverviewItem(
+                    label = "严重告警",
+                    value = critical.toString(),
+                    color = if (critical > 0) Color(0xFFC62828) else Color(0xFF9E9E9E),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun OverviewItem(label: String, value: String, color: Color) {
+private fun OverviewItem(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier.widthIn(min = 72.dp),
+        modifier = modifier.padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = value,
             style = MiuixTheme.textStyles.title1,
-            color = color
+            color = color,
+            maxLines = 1
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = label,
             style = MiuixTheme.textStyles.footnote2,
             color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -233,6 +249,7 @@ private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
             WorkMode.HEAT -> Triple("加热模式", Color(0xFFEF6C00), Color(0xFFFFF3E0))
             WorkMode.VENTILATE -> Triple("通风模式", Color(0xFF6A1B9A), Color(0xFFF3E5F5))
             WorkMode.ALARM -> Triple("凝露警报", Color(0xFFC62828), Color(0xFFFFEBEE))
+            WorkMode.OFFLINE -> Triple("设备离线", Color(0xFF9E9E9E), Color(0xFFF5F5F5))
         }
     }
 

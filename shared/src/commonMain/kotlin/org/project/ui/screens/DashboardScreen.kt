@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.Instant
@@ -310,18 +311,22 @@ private fun OverviewItem(
 
 @Composable
 private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
-    val (modeText, modeColor, bgColor) = if (isOffline) {
-        Triple("设备离线", Color(0xFF9E9E9E), Color(0xFFF5F5F5))
+    // 主题色与卡片背景：Miuix 主题在深色模式下会自动使用深色 surface，
+    // 文字色 onBackground 会自动反色；状态指示色与背景色块按主题动态调整透明度。
+    val isDark = MiuixTheme.colorScheme.onBackground.luminance() > 0.5f
+    val (modeText, modeColor) = if (isOffline) {
+        "设备离线" to MiuixTheme.colorScheme.secondary
     } else {
         when (mode) {
-            WorkMode.NORMAL -> Triple("正常运行", Color(0xFF2E7D32), Color(0xFFE8F5E9))
-            WorkMode.DEHUMIDIFY -> Triple("除湿模式", Color(0xFF1565C0), Color(0xFFE3F2FD))
-            WorkMode.HEAT -> Triple("加热模式", Color(0xFFEF6C00), Color(0xFFFFF3E0))
-            WorkMode.VENTILATE -> Triple("通风模式", Color(0xFF6A1B9A), Color(0xFFF3E5F5))
-            WorkMode.ALARM -> Triple("凝露警报", Color(0xFFC62828), Color(0xFFFFEBEE))
-            WorkMode.OFFLINE -> Triple("设备离线", Color(0xFF9E9E9E), Color(0xFFF5F5F5))
+            WorkMode.NORMAL -> "正常运行" to Color(0xFF2E7D32)
+            WorkMode.DEHUMIDIFY -> "除湿模式" to Color(0xFF1565C0)
+            WorkMode.HEAT -> "加热模式" to Color(0xFFEF6C00)
+            WorkMode.VENTILATE -> "通风模式" to Color(0xFF6A1B9A)
+            WorkMode.ALARM -> "凝露警报" to Color(0xFFC62828)
+            WorkMode.OFFLINE -> "设备离线" to MiuixTheme.colorScheme.secondary
         }
     }
+    val bgColor = modeColor.copy(alpha = if (isDark) 0.18f else 0.12f)
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -341,7 +346,7 @@ private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawCircle(
-                        color = modeColor.copy(alpha = 0.3f),
+                        color = modeColor.copy(alpha = if (isDark) 0.4f else 0.3f),
                         radius = size.minDimension / 2
                     )
                     drawCircle(
@@ -356,7 +361,7 @@ private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
                 Text(
                     text = "当前工作模式",
                     style = MiuixTheme.textStyles.footnote1,
-                    color = modeColor.copy(alpha = 0.8f)
+                    color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
                 Text(
                     text = modeText,

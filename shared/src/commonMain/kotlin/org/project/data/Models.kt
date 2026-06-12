@@ -49,7 +49,7 @@ data class AlarmCodeInfo(
 )
 
 /**
- * 告警码定义表 (0-16位bitmask)，依据 alarm_code表与说明.md
+ * 告警码定义表 (0-14位bitmask)，依据 alarm_code表与说明.md (协议 v1.4 2026-06-12)
  * 位0: 正常
  * 位1-3: 环境异常 (warning)
  * 位4: 温湿度传感器故障 (critical) — 原4/5合并
@@ -61,10 +61,9 @@ data class AlarmCodeInfo(
  * 位10: 蜂鸣器故障 (warning)
  * 位11: WiFi故障 (warning) — 忽略（通信层，不显示在告警卡片）
  * 位12: MQTT故障 (critical) — 忽略（通信层，不显示在告警卡片）
- * 位13: 主控异常 (critical)
- * 位14: 电源异常 (critical)
- * 位15: OLED故障 (warning)
- * 位16: 从控故障 (critical)
+ * 位13: OLED故障 (warning) — 原15→13
+ * 位14: 从控故障 (critical) — 原16→14
+ * (协议 v1.4 紧凑重新编号：删除原 主控异常 13 / 电源异常 14)
  */
 object AlarmCodeTable {
     private val table = mapOf(
@@ -80,14 +79,12 @@ object AlarmCodeTable {
         9 to AlarmCodeInfo(9, "天气模拟故障", "雾化器故障", AlarmSeverity.WARNING),
         10 to AlarmCodeInfo(10, "执行机构故障", "蜂鸣器故障", AlarmSeverity.WARNING),
         // 位11、12 为通信故障（WiFi/MQTT），不在告警卡片中显示
-        13 to AlarmCodeInfo(13, "主控故障", "主控异常", AlarmSeverity.CRITICAL),
-        14 to AlarmCodeInfo(14, "电源故障", "电源异常", AlarmSeverity.CRITICAL),
-        15 to AlarmCodeInfo(15, "显示故障", "OLED故障", AlarmSeverity.WARNING),
-        16 to AlarmCodeInfo(16, "通信故障", "从控故障", AlarmSeverity.CRITICAL)
+        13 to AlarmCodeInfo(13, "显示故障", "OLED故障", AlarmSeverity.WARNING),
+        14 to AlarmCodeInfo(14, "通信故障", "从控故障", AlarmSeverity.CRITICAL)
     )
 
     /** 所有需要在 UI 告警卡片中显示的告警码（排除 11、12） */
-    val displayCodes: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 16)
+    val displayCodes: List<Int> = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14)
 
     fun getInfo(code: Int): AlarmCodeInfo = table[code] ?: AlarmCodeInfo(code, "未知", "未知故障", AlarmSeverity.WARNING)
 

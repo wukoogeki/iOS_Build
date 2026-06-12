@@ -19,6 +19,7 @@ class ApiService private constructor() {
     }
 
     private val client = HttpClient {
+        expectSuccess = true
         install(ContentNegotiation) {
             json(json)
         }
@@ -41,8 +42,28 @@ class ApiService private constructor() {
     private val baseUrl: String
         get() = ApiConfig.getBaseUrl()
 
+    /**
+     * 用于登录 / 登出：这些接口会自行处理 401 → 业务错误（错误响应体的 success=false），
+     * 避免被 HttpClient 抛 ClientRequestException 提前打断。
+     */
+    private val lenientClient: HttpClient = run {
+        val cfg: HttpClientConfig<*>.() -> Unit = {
+            expectSuccess = false
+            install(ContentNegotiation) { json(json) }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 15000
+                connectTimeoutMillis = 15000
+            }
+            defaultRequest {
+                contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
+            }
+        }
+        HttpClient(cfg)
+    }
+
     suspend fun login(username: String, password: String): Result<String> = runCatching {
-        val response: LoginResponse = client.post("$baseUrl${ApiRoutes.LOGIN}") {
+        val response: LoginResponse = lenientClient.post("$baseUrl${ApiRoutes.LOGIN}") {
             setBody(LoginRequest(username, password))
         }.body()
         if (response.success && response.token != null) {
@@ -54,7 +75,7 @@ class ApiService private constructor() {
     }
 
     suspend fun logout(): Result<Unit> = runCatching {
-        val response: LogoutResponse = client.post("$baseUrl${ApiRoutes.LOGOUT}") {
+        val response: LogoutResponse = lenientClient.post("$baseUrl${ApiRoutes.LOGOUT}") {
         }.body()
         ApiConfig.setAuthToken(null)
         if (!response.success) {

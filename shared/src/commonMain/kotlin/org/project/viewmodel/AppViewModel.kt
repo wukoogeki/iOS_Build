@@ -43,6 +43,8 @@ class AppViewModel {
 
     private fun Throwable.toUserMessage(): String {
         val msg = message ?: "未知错误"
+        // Ktor 在收到非 2xx 响应时抛 ResponseException，
+        // 其 message 通常包含 "401"/"Unauthorized" 等；这里只用于友好提示。
         return when {
             msg.contains("Connection refused", ignoreCase = true) -> "服务器拒绝连接"
             msg.contains("connect timed out", ignoreCase = true) ||
@@ -51,8 +53,6 @@ class AppViewModel {
             msg.contains("Unable to resolve host", ignoreCase = true) ||
                 msg.contains("Name or service not known", ignoreCase = true) ||
                 msg.contains("nodename nor servname", ignoreCase = true) -> "网络不可达，请检查网络连接"
-            msg.contains("Token无效或已过期", ignoreCase = true) -> "登录已过期，请重新登录"
-            msg.contains("401", ignoreCase = true) -> "用户名或密码错误"
             msg.contains("403", ignoreCase = true) -> "没有权限访问"
             msg.contains("404", ignoreCase = true) -> "请求的资源不存在"
             msg.contains("500", ignoreCase = true) -> "服务器内部错误"
@@ -66,8 +66,21 @@ class AppViewModel {
     }
 
     private fun Throwable.isTokenExpiredError(): Boolean {
-        return message?.contains("Token无效或已过期", ignoreCase = true) == true ||
-                message?.contains("401", ignoreCase = true) == true
+        // 优先通过 Ktor 异常类型 / HTTP 状态码判断 token 失效；
+        // 字符串匹配只作为兜底（处理错误响应体里直接写明 Token 无效的情况）。
+        if (this is io.ktor.client.plugins.ClientRequestException) {
+            val status = response.status.value
+            if (status == 401 || status == 403) {
+                // 401/403 在已登录态下 = token 失效；在登录接口时也会命中，
+                // 但登录接口走 LoginResponse.message 自行抛出，不会落到此 catch。
+                return true
+            }
+        }
+        val msg = message ?: return false
+        return msg.contains("Token无效或已过期", ignoreCase = true) ||
+                msg.contains("Token 已过期", ignoreCase = true) ||
+                msg.contains("invalid token", ignoreCase = true) ||
+                msg.contains("token expired", ignoreCase = true)
     }
 
     init {

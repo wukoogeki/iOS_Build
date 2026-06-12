@@ -62,7 +62,8 @@ data class ApiCabinetDevice(
             x = x,
             y = y,
             isOnline = effectiveIsOnline,
-            currentData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L),
+            currentData = currentData?.toModel(alarmCode = alarmInfo.code, alarmMessage = alarmInfo.message)
+                ?: EnvironmentData(25f, 60f, 18f, 0L, alarmCode = alarmInfo.code, alarmMessage = alarmInfo.message),
             currentMode = if (!effectiveIsOnline) WorkMode.OFFLINE
                           else if (alarmInfo.isAbnormal) WorkMode.ALARM
                           else WorkMode.NORMAL,
@@ -108,7 +109,7 @@ data class ApiEnvironmentData(
     val timestamp: String = "",
     val weather: ApiWeather? = null
 ) {
-    fun toModel(): EnvironmentData {
+    fun toModel(alarmCode: Int = 0, alarmMessage: String = "normal"): EnvironmentData {
         val dewPoint = computeDewPoint(temperatureC, humidityPercent)
         val ts = parseTimestamp(timestamp)
         return EnvironmentData(
@@ -116,7 +117,9 @@ data class ApiEnvironmentData(
             humidity = humidityPercent,
             dewPoint = dewPoint,
             timestamp = ts,
-            lightLx = lightLx
+            lightLx = lightLx,
+            alarmCode = alarmCode,
+            alarmMessage = alarmMessage
         )
     }
 }
@@ -144,7 +147,8 @@ data class ApiDeviceLatest(
     fun toModel(): CabinetDevice {
         val alarmInfo = alarm?.toModel() ?: AlarmInfo()
         val effectiveIsOnline = isOnline
-        val envData = currentData?.toModel() ?: EnvironmentData(25f, 60f, 18f, 0L)
+        val envData = currentData?.toModel(alarmCode = alarmInfo.code, alarmMessage = alarmInfo.message)
+            ?: EnvironmentData(25f, 60f, 18f, 0L, alarmCode = alarmInfo.code, alarmMessage = alarmInfo.message)
         val ds = deviceState?.toModel() ?: DeviceState()
         return CabinetDevice(
             id = id,

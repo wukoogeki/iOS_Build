@@ -466,40 +466,6 @@ private fun EnvironmentDataCard(data: EnvironmentData) {
                     color = Color(0xFFFFEB3B)
                 )
             }
-
-            val alarmCodes = AlarmCodeTable.parseFromBitmask(data.alarmCode)
-            if (alarmCodes.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    alarmCodes.forEach { alarm ->
-                        val bgColor = when (alarm.severity) {
-                            AlarmSeverity.CRITICAL -> Color(0xFFFFEBEE)
-                            AlarmSeverity.WARNING -> Color(0xFFFFF3E0)
-                            else -> Color(0xFFF5F5F5)
-                        }
-                        val textColor = when (alarm.severity) {
-                            AlarmSeverity.CRITICAL -> Color(0xFFB71C1C)
-                            AlarmSeverity.WARNING -> Color(0xFFE65100)
-                            else -> MiuixTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                        }
-                        Surface(
-                            color = bgColor,
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "[${alarm.category}] ${alarm.meaning}",
-                                style = MiuixTheme.textStyles.footnote1,
-                                color = textColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -1042,13 +1008,13 @@ private fun AlarmCodeRow(alarm: org.project.data.AlarmCodeInfo) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = alarm.meaning,
-                style = MiuixTheme.textStyles.body2,
+                style = MiuixTheme.textStyles.body1,
                 color = MiuixTheme.colorScheme.onBackground
             )
             Text(
                 text = alarm.category,
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.secondary
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.75f)
             )
         }
         Text(
@@ -1057,7 +1023,7 @@ private fun AlarmCodeRow(alarm: org.project.data.AlarmCodeInfo) {
                 AlarmSeverity.WARNING -> "一般"
                 else -> "正常"
             },
-            style = MiuixTheme.textStyles.footnote2,
+            style = MiuixTheme.textStyles.body2,
             color = color
         )
     }

@@ -14,11 +14,8 @@ import org.project.ui.components.BottomNavBar
 import org.project.ui.components.ToastHost
 import org.project.ui.screens.*
 import org.project.viewmodel.AppViewModel
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -30,7 +27,6 @@ fun App() {
     val controller = remember(themeMode) { ThemeController(themeMode) }
     val viewModel = remember { AppViewModel() }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Login) }
-    val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
 
     // Check if user is already logged in
     LaunchedEffect(Unit) {
@@ -55,6 +51,14 @@ fun App() {
         }
     }
 
+    // Show toast when error message changes
+    LaunchedEffect(viewModel.errorMessage) {
+        if (viewModel.errorMessage != null) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.clearError()
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.dispose()
@@ -63,14 +67,6 @@ fun App() {
 
     MiuixTheme(controller = controller) {
         Scaffold(
-            topBar = {
-                if (currentScreen != Screen.Login) {
-                    SmallTopAppBar(
-                        title = currentScreen.title,
-                        scrollBehavior = scrollBehavior
-                    )
-                }
-            },
             bottomBar = {
                 if (currentScreen != Screen.Login) {
                     BottomNavBar(

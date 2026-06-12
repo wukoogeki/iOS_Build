@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -33,7 +34,7 @@ import org.project.data.AlarmSeverity
 import org.project.data.DeviceStatus
 import org.project.data.EnvironmentData
 import org.project.data.WorkMode
-import org.project.ui.components.PullToRefresh
+import org.project.getPlatform
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -52,39 +53,75 @@ fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {
     }
 
     val listState = rememberLazyListState()
+    val supportsPullToRefresh = getPlatform().supportsPullToRefresh
 
-    // 主内容区：包一层 PullToRefresh，向上滑到顶继续下拉触发刷新
-    PullToRefresh(
-        refreshing = viewModel.isRefreshing,
-        onRefresh = { viewModel.refreshAll() },
-        // 空选设备时仅禁用下拉刷新
-        enableRefresh = selectedDevice != null,
-        enableBounce = false,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    if (supportsPullToRefresh) {
+        val pullToRefreshState = rememberPullToRefreshState()
+        PullToRefresh(
+            isRefreshing = viewModel.isRefreshing,
+            onRefresh = { viewModel.refreshAll() },
+            pullToRefreshState = pullToRefreshState,
+            refreshTexts = listOf(
+                "下拉刷新",
+                "松开刷新",
+                "正在刷新",
+                "刷新成功"
+            ),
+            modifier = Modifier.fillMaxSize()
         ) {
+            DashboardContent(
+                listState = listState,
+                viewModel = viewModel,
+                onNavigateToDevices = onNavigateToDevices
+            )
+        }
+    } else {
+        DashboardContent(
+            listState = listState,
+            viewModel = viewModel,
+            onNavigateToDevices = onNavigateToDevices
+        )
+    }
+}
+
+@Composable
+private fun DashboardContent(
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    viewModel: AppViewModel,
+    onNavigateToDevices: () -> Unit
+) {
+    val state = viewModel.state
+    val selectedDevice = state.selectedDevice
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (selectedDevice == null) {
             item {
-                Spacer(Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillParentMaxHeight()
+                ) {
+                    Spacer(Modifier.height(16.dp))
 
-                // 设备总览：普通卡片，随列表滚动
-                DeviceOverviewCard(state.devices, onClick = onNavigateToDevices)
-                Spacer(Modifier.height(16.dp))
-            }
+                    DeviceOverviewCard(state.devices, onClick = onNavigateToDevices)
+                    Spacer(Modifier.height(16.dp))
 
-            if (selectedDevice == null) {
-                item {
                     Card(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(onClick = onNavigateToDevices)
                     ) {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .fillMaxSize()
                                 .padding(32.dp),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -96,57 +133,64 @@ fun DashboardScreen(viewModel: AppViewModel, onNavigateToDevices: () -> Unit = {
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "点击底部导航栏「设备」选择要查看的环网柜",
+                                text = "点击前往设备列表选择要查看的环网柜",
                                 style = MiuixTheme.textStyles.body2,
                                 color = MiuixTheme.colorScheme.onBackground
                             )
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
                 }
-                return@LazyColumn
             }
+            return@LazyColumn
+        }
 
-            item {
-                SelectedDeviceCard(selectedDevice)
-                Spacer(Modifier.height(16.dp))
-                WorkModeCard(state.currentMode, selectedDevice.isOnline == false)
-                Spacer(Modifier.height(16.dp))
-                AlarmCodeCard(alarmCode = state.currentData.alarmCode)
-                Spacer(Modifier.height(16.dp))
-            }
+        item {
+            Spacer(Modifier.height(16.dp))
 
-            item {
-                EnvironmentDataCard(state.currentData)
-                Spacer(Modifier.height(16.dp))
-            }
+            // 设备总览：普通卡片，随列表滚动
+            DeviceOverviewCard(state.devices, onClick = onNavigateToDevices)
+            Spacer(Modifier.height(16.dp))
+        }
 
-            item {
-                // 历史数据反转：最新数据放最右边
-                HistoryChartCard(state.historyData.reversed())
-                Spacer(Modifier.height(16.dp))
-            }
+        item {
+            SelectedDeviceCard(selectedDevice)
+            Spacer(Modifier.height(16.dp))
+            WorkModeCard(state.currentMode, selectedDevice.isOnline == false)
+            Spacer(Modifier.height(16.dp))
+            AlarmCodeCard(alarmCode = state.currentData.alarmCode)
+            Spacer(Modifier.height(16.dp))
+        }
 
-            item {
-                DeviceStatusCard(
-                    deviceState = state.deviceState,
-                    currentMode = state.currentMode,
-                    isOnline = selectedDevice.isOnline
-                )
-                Spacer(Modifier.height(16.dp))
-            }
+        item {
+            EnvironmentDataCard(state.currentData)
+            Spacer(Modifier.height(16.dp))
+        }
 
-            item {
-                ControlCard(
-                    deviceState = state.deviceState,
-                    onHeaterChange = { viewModel.setDeviceStatus("heater", it) },
-                    onFanChange = { viewModel.setDeviceStatus("fan", it) },
-                    onAtomizerChange = { viewModel.setDeviceStatus("atomizer", it) },
-                    onCoolingChange = { viewModel.setDeviceStatus("cooling", it) },
-                    onBuzzerChange = { viewModel.setDeviceStatus("buzzer", it) }
-                )
-                Spacer(Modifier.height(32.dp))
-            }
+        item {
+            // 历史数据反转：最新数据放最右边
+            HistoryChartCard(state.historyData.reversed())
+            Spacer(Modifier.height(16.dp))
+        }
+
+        item {
+            DeviceStatusCard(
+                deviceState = state.deviceState,
+                currentMode = state.currentMode,
+                isOnline = selectedDevice.isOnline
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        item {
+            ControlCard(
+                deviceState = state.deviceState,
+                onHeaterChange = { viewModel.setDeviceStatus("heater", it) },
+                onFanChange = { viewModel.setDeviceStatus("fan", it) },
+                onAtomizerChange = { viewModel.setDeviceStatus("atomizer", it) },
+                onCoolingChange = { viewModel.setDeviceStatus("cooling", it) },
+                onBuzzerChange = { viewModel.setDeviceStatus("buzzer", it) }
+            )
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
@@ -163,6 +207,7 @@ private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>, on
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
     ) {
         Column(
@@ -360,7 +405,7 @@ private fun SelectedDeviceCard(device: org.project.data.CabinetDevice) {
                 ) {
                     Text(
                         text = "在线",
-                        style = MiuixTheme.textStyles.footnote2,
+                        style = MiuixTheme.textStyles.footnote1,
                         color = Color(0xFF4CAF50),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
@@ -372,7 +417,7 @@ private fun SelectedDeviceCard(device: org.project.data.CabinetDevice) {
                 ) {
                     Text(
                         text = "离线",
-                        style = MiuixTheme.textStyles.footnote2,
+                        style = MiuixTheme.textStyles.footnote1,
                         color = Color(0xFFF44336),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
@@ -934,7 +979,7 @@ private fun AlarmCodeCard(alarmCode: Int) {
                 // 折叠/展开按钮
                 Text(
                     text = if (expanded) "收起" else "展开",
-                    style = MiuixTheme.textStyles.footnote2,
+                    style = MiuixTheme.textStyles.button,
                     color = MiuixTheme.colorScheme.primary,
                     modifier = Modifier.clickable { expanded = !expanded }
                 )

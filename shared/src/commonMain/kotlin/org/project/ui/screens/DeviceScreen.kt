@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.data.CabinetDevice
 import org.project.data.WorkMode
-import org.project.ui.components.PullToRefresh
+import org.project.getPlatform
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -29,6 +29,7 @@ fun DeviceScreen(
 ) {
     val state = viewModel.state
     var searchQuery by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
     var showAbnormalOnly by remember { mutableStateOf(false) }
 
     val filteredDevices = remember(state.devices, searchQuery, showAbnormalOnly) {
@@ -66,13 +67,39 @@ fun DeviceScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        TextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
+        SearchBar(
             modifier = Modifier.fillMaxWidth(),
-            label = "搜索设备",
-            useLabelAsPlaceholder = true
-        )
+            inputField = {
+                InputField(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onSearch = { expanded = false },
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    label = "搜索设备"
+                )
+            },
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            // 搜索建议列表
+            val suggestions = remember(state.devices, searchQuery) {
+                if (searchQuery.isBlank()) state.devices.map { it.name }
+                else state.devices.filter {
+                    it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.location.contains(searchQuery, ignoreCase = true)
+                }.map { it.name }
+            }
+            suggestions.forEach { suggestion ->
+                BasicComponent(
+                    title = suggestion,
+                    onClick = {
+                        searchQuery = suggestion
+                        expanded = false
+                    }
+                )
+            }
+        }
 
         Spacer(Modifier.height(12.dp))
 
@@ -114,12 +141,9 @@ fun DeviceScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        // 设备列表：支持下拉刷新
-        PullToRefresh(
-            refreshing = viewModel.isRefreshing,
-            onRefresh = { viewModel.refreshAll() },
-            modifier = Modifier.weight(1f)
-        ) {
+        // 设备列表：支持下拉刷新（WebAssembly 平台禁用）
+        val supportsPullToRefresh = getPlatform().supportsPullToRefresh
+        val deviceListContent: @Composable () -> Unit = {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(filteredDevices) { device ->
                     DeviceListItem(
@@ -132,6 +156,28 @@ fun DeviceScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                 }
+            }
+        }
+
+        if (supportsPullToRefresh) {
+            val pullToRefreshState = rememberPullToRefreshState()
+            PullToRefresh(
+                isRefreshing = viewModel.isRefreshing,
+                onRefresh = { viewModel.refreshAll() },
+                pullToRefreshState = pullToRefreshState,
+                refreshTexts = listOf(
+                    "下拉刷新",
+                    "松开刷新",
+                    "正在刷新",
+                    "刷新成功"
+                ),
+                modifier = Modifier.weight(1f)
+            ) {
+                deviceListContent()
+            }
+        } else {
+            Box(modifier = Modifier.weight(1f)) {
+                deviceListContent()
             }
         }
     }

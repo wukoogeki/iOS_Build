@@ -78,24 +78,12 @@ private fun ThemeSelectorCard(
 
             themes.forEach { (mode, label) ->
                 val isSelected = selectedTheme == mode
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-
-                val pressOverlay = if (isPressed) {
-                    MiuixTheme.colorScheme.primary.copy(alpha = 0.2f)
-                } else {
-                    Color.Transparent
-                }
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) { onThemeChange(mode) }
-                        .background(color = pressOverlay, shape = RoundedCornerShape(8.dp))
+                        .clickable { onThemeChange(mode) }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically

@@ -36,6 +36,8 @@ import org.project.data.DeviceStatus
 import org.project.data.EnvironmentData
 import org.project.data.WorkMode
 import org.project.getPlatform
+import org.project.ui.icons.ChevronDownIcon
+import org.project.ui.icons.ChevronUpIcon
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -314,8 +316,11 @@ private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
     // 主题色与卡片背景：Miuix 主题在深色模式下会自动使用深色 surface，
     // 文字色 onBackground 会自动反色；状态指示色与背景色块按主题动态调整透明度。
     val isDark = MiuixTheme.colorScheme.onBackground.luminance() > 0.5f
+    // 离线态用更亮的灰橙红，在浅/深主题下都有足够对比度；
+    // 之前用 MiuixTheme.colorScheme.secondary 在深色背景下几乎看不清。
+    val offlineColor = if (isDark) Color(0xFFFFAB91) else Color(0xFFD84315)
     val (modeText, modeColor) = if (isOffline) {
-        "设备离线" to MiuixTheme.colorScheme.secondary
+        "设备离线" to offlineColor
     } else {
         when (mode) {
             WorkMode.NORMAL -> "正常运行" to Color(0xFF2E7D32)
@@ -323,7 +328,7 @@ private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
             WorkMode.HEAT -> "加热模式" to Color(0xFFEF6C00)
             WorkMode.VENTILATE -> "通风模式" to Color(0xFF6A1B9A)
             WorkMode.ALARM -> "凝露警报" to Color(0xFFC62828)
-            WorkMode.OFFLINE -> "设备离线" to MiuixTheme.colorScheme.secondary
+            WorkMode.OFFLINE -> "设备离线" to offlineColor
         }
     }
     val bgColor = modeColor.copy(alpha = if (isDark) 0.18f else 0.12f)
@@ -947,12 +952,14 @@ private fun AlarmCodeCard(alarmCode: Int) {
                     text = "告警详情",
                     style = MiuixTheme.textStyles.title3
                 )
-                // 折叠/展开按钮
-                Text(
-                    text = if (expanded) "收起" else "展开",
-                    style = MiuixTheme.textStyles.button,
-                    color = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { expanded = !expanded }
+                // 折叠/展开按钮：使用 chevron 图标代替文字
+                Icon(
+                    imageVector = if (expanded) ChevronUpIcon else ChevronDownIcon,
+                    contentDescription = if (expanded) "收起" else "展开",
+                    tint = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable { expanded = !expanded }
                 )
             }
 

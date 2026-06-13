@@ -11,6 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.data.DeviceStatus
+import org.project.ui.theme.appBlue
+import org.project.ui.theme.appGreen
+import org.project.ui.theme.appOrange
+import org.project.ui.theme.appRed
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -44,7 +48,7 @@ fun ControlScreen(viewModel: AppViewModel) {
                 title = "加热器控制",
                 description = "用于低温环境加热，防止凝露",
                 currentStatus = state.deviceState.heater,
-                activeColor = Color(0xFFFF9800),
+                activeColor = appOrange(),
                 onStatusChange = { viewModel.setDeviceStatus("heater", it) }
             )
             Spacer(Modifier.height(16.dp))
@@ -55,7 +59,7 @@ fun ControlScreen(viewModel: AppViewModel) {
                 title = "风扇控制",
                 description = "用于通风散热，降低柜内温度",
                 currentStatus = state.deviceState.fan,
-                activeColor = Color(0xFF4CAF50),
+                activeColor = appGreen(),
                 onStatusChange = { viewModel.setDeviceStatus("fan", it) }
             )
             Spacer(Modifier.height(16.dp))
@@ -66,7 +70,7 @@ fun ControlScreen(viewModel: AppViewModel) {
                 title = "雾化器控制",
                 description = "用于天气模拟，产生雾化效果",
                 currentStatus = state.deviceState.atomizer,
-                activeColor = Color(0xFF2196F3),
+                activeColor = appBlue(),
                 onStatusChange = { viewModel.setDeviceStatus("atomizer", it) }
             )
             Spacer(Modifier.height(16.dp))
@@ -77,7 +81,7 @@ fun ControlScreen(viewModel: AppViewModel) {
                 title = "制冷器控制",
                 description = "用于高温环境制冷降温",
                 currentStatus = state.deviceState.cooling,
-                activeColor = Color(0xFF9C27B0),
+                activeColor = appBlue(),
                 onStatusChange = { viewModel.setDeviceStatus("cooling", it) }
             )
             Spacer(Modifier.height(16.dp))
@@ -88,7 +92,7 @@ fun ControlScreen(viewModel: AppViewModel) {
                 title = "蜂鸣器控制",
                 description = "用于报警提示",
                 currentStatus = state.deviceState.buzzer,
-                activeColor = Color(0xFFF44336),
+                activeColor = appRed(),
                 onStatusChange = { viewModel.setDeviceStatus("buzzer", it) }
             )
             Spacer(Modifier.height(32.dp))
@@ -179,7 +183,7 @@ private fun StatusBadge(status: DeviceStatus, activeColor: Color) {
     val (text, color) = when (status) {
         DeviceStatus.OFF -> Pair("关闭", MiuixTheme.colorScheme.secondary)
         DeviceStatus.ON -> Pair("运行", activeColor)
-        DeviceStatus.AUTO -> Pair("自动", Color(0xFF9C27B0))
+        DeviceStatus.AUTO -> Pair("自动", appBlue())
     }
 
     Surface(

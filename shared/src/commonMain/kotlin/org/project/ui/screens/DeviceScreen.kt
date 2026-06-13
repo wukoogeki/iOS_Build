@@ -18,6 +18,11 @@ import androidx.compose.ui.unit.dp
 import org.project.data.CabinetDevice
 import org.project.data.WorkMode
 import org.project.getPlatform
+import org.project.ui.theme.appBlue
+import org.project.ui.theme.appGreen
+import org.project.ui.theme.appOrange
+import org.project.ui.theme.appRed
+import org.project.ui.theme.themedSurface
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -82,7 +87,8 @@ fun DeviceScreen(
             expanded = expanded,
             onExpandedChange = { expanded = it }
         ) {
-            // 搜索建议列表
+            // 搜索建议列表：用 Column 显式垂直堆叠，
+            // 避免 Miuix SearchBar 内容容器默认水平排版把 BasicComponent 横排。
             val suggestions = remember(state.devices, searchQuery) {
                 if (searchQuery.isBlank()) state.devices.map { it.name }
                 else state.devices.filter {
@@ -90,14 +96,17 @@ fun DeviceScreen(
                     it.location.contains(searchQuery, ignoreCase = true)
                 }.map { it.name }
             }
-            suggestions.forEach { suggestion ->
-                BasicComponent(
-                    title = suggestion,
-                    onClick = {
-                        searchQuery = suggestion
-                        expanded = false
-                    }
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                suggestions.forEach { suggestion ->
+                    BasicComponent(
+                        title = suggestion,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            searchQuery = suggestion
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
 
@@ -190,21 +199,32 @@ private fun DeviceListItem(
     onClick: () -> Unit
 ) {
     val statusColor = when {
-        !device.isOnline -> Color(0xFF9E9E9E)
-        device.currentMode == WorkMode.NORMAL -> Color(0xFF4CAF50)
-        device.currentMode == WorkMode.DEHUMIDIFY -> Color(0xFF2196F3)
-        device.currentMode == WorkMode.HEAT -> Color(0xFFFF9800)
-        device.currentMode == WorkMode.VENTILATE -> Color(0xFF9C27B0)
-        device.currentMode == WorkMode.ALARM -> Color(0xFFF44336)
-        device.currentMode == WorkMode.OFFLINE -> Color(0xFF9E9E9E)
-        else -> Color(0xFF4CAF50)
+        !device.isOnline -> appOrange() // 离线统一用橙色（深浅可读）
+        device.currentMode == WorkMode.NORMAL -> appGreen()
+        device.currentMode == WorkMode.DEHUMIDIFY -> appBlue()
+        device.currentMode == WorkMode.HEAT -> appOrange()
+        device.currentMode == WorkMode.VENTILATE -> appBlue()
+        device.currentMode == WorkMode.ALARM -> appRed()
+        device.currentMode == WorkMode.OFFLINE -> appOrange()
+        else -> appGreen()
     }
 
-    // 异常设备背景色：轻微的红色/橙色高亮
+    // 异常设备背景色：深浅主题使用不同的色板
     val abnormalBg = when {
-        !device.isOnline -> Color(0xFFFAFAFA)
-        device.alarm.severity == org.project.data.AlarmSeverity.CRITICAL -> Color(0xFFFFEBEE)
-        device.alarm.severity == org.project.data.AlarmSeverity.WARNING -> Color(0xFFFFF3E0)
+        !device.isOnline -> themedSurface(
+            light = Color(0xFFFAFAFA),
+            dark = Color(0xFF3A3A3A),
+            lightAlpha = 1f,
+            darkAlpha = 1f
+        )
+        device.alarm.severity == org.project.data.AlarmSeverity.CRITICAL -> themedSurface(
+            light = Color(0xFFFFEBEE),
+            dark = Color(0xFF4A1F1F)
+        )
+        device.alarm.severity == org.project.data.AlarmSeverity.WARNING -> themedSurface(
+            light = Color(0xFFFFF3E0),
+            dark = Color(0xFF4A3520)
+        )
         else -> Color.Transparent
     }
 
@@ -256,40 +276,43 @@ private fun DeviceListItem(
 
             when {
                 !device.isOnline -> {
+                    val orange = appOrange()
                     Surface(
-                        color = Color(0xFFFFEBEE),
+                        color = orange.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
                             text = "离线",
                             style = MiuixTheme.textStyles.footnote2,
-                            color = Color(0xFFF44336),
+                            color = orange,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
                 device.alarm.severity == org.project.data.AlarmSeverity.CRITICAL -> {
+                    val red = appRed()
                     Surface(
-                        color = Color(0xFFFFCDD2),
+                        color = red.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
                             text = "严重",
                             style = MiuixTheme.textStyles.footnote2,
-                            color = Color(0xFFB71C1C),
+                            color = red,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
                 device.alarm.severity == org.project.data.AlarmSeverity.WARNING -> {
+                    val orange = appOrange()
                     Surface(
-                        color = Color(0xFFFFE0B2),
+                        color = orange.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
                             text = "告警",
                             style = MiuixTheme.textStyles.footnote2,
-                            color = Color(0xFFE65100),
+                            color = orange,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }

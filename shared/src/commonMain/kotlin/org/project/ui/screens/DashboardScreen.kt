@@ -183,7 +183,8 @@ private fun DashboardContent(
             DeviceStatusCard(
                 deviceState = state.deviceState,
                 currentMode = state.currentMode,
-                isOnline = selectedDevice.isOnline
+                isOnline = selectedDevice.isOnline,
+                alarmCode = selectedDevice.alarm.code
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -331,7 +332,7 @@ private fun WorkModeCard(mode: WorkMode, isOffline: Boolean = false) {
             WorkMode.DEHUMIDIFY -> "除湿模式" to Color(0xFF1565C0)
             WorkMode.HEAT -> "加热模式" to Color(0xFFEF6C00)
             WorkMode.VENTILATE -> "通风模式" to Color(0xFF6A1B9A)
-            WorkMode.ALARM -> "凝露警报" to Color(0xFFC62828)
+            WorkMode.ALARM -> "异常" to Color(0xFFC62828)
             WorkMode.OFFLINE -> "设备离线" to offlineColor
         }
     }
@@ -804,10 +805,9 @@ private fun formatTimestamp(ts: Long): String {
 private fun DeviceStatusCard(
     deviceState: org.project.data.DeviceState,
     currentMode: org.project.data.WorkMode,
-    isOnline: Boolean
+    isOnline: Boolean,
+    alarmCode: Int = 0
 ) {
-    val isAbnormal = !isOnline || currentMode == org.project.data.WorkMode.ALARM
-
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -816,15 +816,15 @@ private fun DeviceStatusCard(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            DeviceStatusItem("加热器", deviceState.heater, Color(0xFFFF9800), isAbnormal)
+            DeviceStatusItem("加热器", deviceState.heater, Color(0xFFFF9800), !isOnline || (alarmCode and (1 shl 7)) != 0)
             Spacer(Modifier.height(8.dp))
-            DeviceStatusItem("风扇", deviceState.fan, Color(0xFF4CAF50), isAbnormal)
+            DeviceStatusItem("风扇", deviceState.fan, Color(0xFF4CAF50), !isOnline || (alarmCode and (1 shl 6)) != 0)
             Spacer(Modifier.height(8.dp))
-            DeviceStatusItem("雾化器", deviceState.atomizer, Color(0xFF2196F3), isAbnormal)
+            DeviceStatusItem("雾化器", deviceState.atomizer, Color(0xFF2196F3), !isOnline || (alarmCode and (1 shl 9)) != 0)
             Spacer(Modifier.height(8.dp))
-            DeviceStatusItem("制冷器", deviceState.cooling, Color(0xFF9C27B0), isAbnormal)
+            DeviceStatusItem("制冷器", deviceState.cooling, Color(0xFF9C27B0), !isOnline || (alarmCode and (1 shl 8)) != 0)
             Spacer(Modifier.height(8.dp))
-            DeviceStatusItem("蜂鸣器", deviceState.buzzer, Color(0xFFF44336), isAbnormal)
+            DeviceStatusItem("蜂鸣器", deviceState.buzzer, Color(0xFFF44336), !isOnline || (alarmCode and (1 shl 10)) != 0)
         }
     }
 }

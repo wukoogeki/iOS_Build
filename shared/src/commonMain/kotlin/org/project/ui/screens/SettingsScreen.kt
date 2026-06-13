@@ -1,9 +1,7 @@
 package org.project.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import org.project.ui.components.clickableWithFeedback
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -83,7 +81,7 @@ private fun ThemeSelectorCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onThemeChange(mode) }
+                        .clickableWithFeedback { onThemeChange(mode) }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -170,7 +168,7 @@ private fun LogoutButton(onLogout: () -> Unit) {
                 color = MiuixTheme.colorScheme.primary,
                 shape = RoundedCornerShape(12.dp)
             )
-            .clickable { onLogout() }
+            .clickableWithFeedback { onLogout() }
             .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {

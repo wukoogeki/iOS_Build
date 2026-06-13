@@ -1,5 +1,7 @@
 package org.project.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -10,7 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import org.project.navigation.Screen
@@ -56,26 +58,27 @@ fun BottomNavBar(
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
 
-                val pressOverlay = if (isPressed) {
-                    MiuixTheme.colorScheme.primary.copy(alpha = 0.2f)
-                } else {
-                    Color.Transparent
-                }
-
                 val contentColor = if (isSelected) {
                     MiuixTheme.colorScheme.primary
                 } else {
                     MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 }
 
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.92f else 1f,
+                    animationSpec = tween(durationMillis = 120),
+                    label = "navPressScale"
+                )
+
                 Box(
                     modifier = Modifier
+                        .weight(1f)
+                        .scale(scale)
                         .clip(RoundedCornerShape(11.dp))
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null
                         ) { onScreenSelected(screen) }
-                        .background(color = pressOverlay, shape = RoundedCornerShape(10.dp))
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {

@@ -230,6 +230,7 @@ private fun computeDewPoint(tempC: Float, humidity: Float): Float {
     return (b * gamma) / (a - gamma)
 }
 
+@Suppress("DEPRECATION")
 private fun parseTimestamp(ts: String): Long {
     if (ts.isBlank()) return 0L
     return try {

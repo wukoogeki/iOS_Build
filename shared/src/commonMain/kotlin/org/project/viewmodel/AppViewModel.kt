@@ -99,7 +99,7 @@ class AppViewModel {
         isTokenExpired = true
     }
 
-    private inline fun handleError(e: Throwable) {
+    private fun handleError(e: Throwable) {
         if (e.isTokenExpiredError()) {
             onTokenExpired()
         } else {

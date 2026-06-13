@@ -1,11 +1,13 @@
 package org.project.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,6 +40,8 @@ import org.project.data.WorkMode
 import org.project.getPlatform
 import org.project.ui.icons.ChevronDownIcon
 import org.project.ui.icons.ChevronUpIcon
+import org.project.ui.components.clickableWithFeedback
+import org.project.ui.components.clickableWithOverlay
 import org.project.viewmodel.AppViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -120,7 +124,7 @@ private fun DashboardContent(
                             .fillMaxWidth()
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable(onClick = onNavigateToDevices)
+                            .clickableWithOverlay { onNavigateToDevices() }
                     ) {
                         Column(
                             modifier = Modifier
@@ -211,7 +215,7 @@ private fun DeviceOverviewCard(devices: List<org.project.data.CabinetDevice>, on
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickableWithOverlay { onClick() }
     ) {
         Column(
             modifier = Modifier
@@ -616,6 +620,14 @@ private fun LineChart(data: List<EnvironmentData>) {
             label = "湿度",
             unit = "%"
         )
+        Spacer(Modifier.height(12.dp))
+        InteractiveLineChart(
+            data = data,
+            valueSelector = { it.lightLx.toFloat() },
+            color = Color(0xFFFFEB3B),
+            label = "光照",
+            unit = "lx"
+        )
     }
 }
 
@@ -773,7 +785,7 @@ private val tsFormat: kotlinx.datetime.format.DateTimeFormat<LocalDateTime> =
     LocalDateTime.Format {
         monthNumber(padding = Padding.ZERO)
         char('-')
-        dayOfMonth(padding = Padding.ZERO)
+        day(padding = Padding.ZERO)
         char(' ')
         hour(padding = Padding.ZERO)
         char(':')
@@ -781,6 +793,7 @@ private val tsFormat: kotlinx.datetime.format.DateTimeFormat<LocalDateTime> =
     }
 
 /** 把 Long(ms) 时间戳格式化为 MM-dd HH:mm（使用 kotlinx-datetime，自动处理时区与月日） */
+@Suppress("DEPRECATION")
 private fun formatTimestamp(ts: Long): String {
     if (ts <= 0L) return "--:--"
     val ldt = Instant.fromEpochMilliseconds(ts).toLocalDateTime(localZone)
@@ -900,7 +913,7 @@ private fun DeviceControlRow(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { onStatusChange(status) }
+                        .clickableWithFeedback { onStatusChange(status) }
                         .background(
                             color = if (isSelected) {
                                 activeColor
@@ -958,8 +971,8 @@ private fun AlarmCodeCard(alarmCode: Int) {
                     contentDescription = if (expanded) "收起" else "展开",
                     tint = MiuixTheme.colorScheme.primary,
                     modifier = Modifier
-                        .size(20.dp)
-                        .clickable { expanded = !expanded }
+                        .size(24.dp)
+                        .clickableWithFeedback { expanded = !expanded }
                 )
             }
 
@@ -972,12 +985,23 @@ private fun AlarmCodeCard(alarmCode: Int) {
                 )
             } else {
                 Spacer(Modifier.height(12.dp))
-                if (expanded) {
-                    alarms.forEach { alarm ->
-                        AlarmCodeRow(alarm)
-                        Spacer(Modifier.height(8.dp))
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)),
+                    exit = shrinkVertically(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                ) {
+                    Column {
+                        alarms.forEach { alarm ->
+                            AlarmCodeRow(alarm)
+                            Spacer(Modifier.height(8.dp))
+                        }
                     }
-                } else {
+                }
+                AnimatedVisibility(
+                    visible = !expanded,
+                    enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)),
+                    exit = shrinkVertically(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                ) {
                     // 收起时只显示最严重的一条 + 数量
                     val criticalCount = alarms.count { it.severity == AlarmSeverity.CRITICAL }
                     val warningCount = alarms.count { it.severity == AlarmSeverity.WARNING }

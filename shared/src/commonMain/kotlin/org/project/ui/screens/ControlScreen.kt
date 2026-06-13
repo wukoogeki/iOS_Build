@@ -1,7 +1,7 @@
 package org.project.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import org.project.ui.components.clickableWithFeedback
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -143,7 +143,7 @@ private fun DeviceControlCard(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onStatusChange(status) }
+                            .clickableWithFeedback { onStatusChange(status) }
                             .background(
                                 color = if (isSelected) {
                                     MiuixTheme.colorScheme.primary

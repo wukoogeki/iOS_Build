@@ -1,7 +1,10 @@
 package org.project.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import org.project.ui.components.clickableWithOverlay
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -13,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.project.data.CabinetDevice
@@ -118,9 +122,15 @@ fun DeviceScreen(
         ) {
             val abnormalInteractionSource = remember { MutableInteractionSource() }
             val isAbnormalPressed by abnormalInteractionSource.collectIsPressedAsState()
+            val abnormalScale by animateFloatAsState(
+                targetValue = if (isAbnormalPressed) 0.93f else 1f,
+                animationSpec = tween(durationMillis = 120),
+                label = "abnormalPressScale"
+            )
 
             Box(
                 modifier = Modifier
+                    .scale(abnormalScale)
                     .clip(RoundedCornerShape(8.dp))
                     .clickable(
                         interactionSource = abnormalInteractionSource,
@@ -231,7 +241,7 @@ private fun DeviceListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickableWithOverlay { onClick() }
     ) {
         Row(
             modifier = Modifier
